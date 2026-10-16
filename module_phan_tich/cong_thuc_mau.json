@@ -1,0 +1,26 @@
+{
+    "PT_01": {
+        "ten_phan_tich": "Kiểm tra rủi ro Biên lợi nhuận gộp",
+        "nhom": "Phân tích BCTC",
+        "cong_thuc": "([03/TNDN | PL 03-1A | ct06] / [03/TNDN | PL 03-1A | ct04]) * 100",
+        "dieu_kien_rui_ro": "< 5",
+        "thong_diep_rui_ro": "Biên lợi nhuận gộp dưới 5%, rủi ro thanh tra chuyển giá, đẩy giá vốn.",
+        "thong_diep_an_toan": "Biên lợi nhuận gộp ở mức an toàn (>= 5%)."
+    },
+    "PT_02": {
+        "ten_phan_tich": "Đối chiếu Doanh thu Hóa đơn và Tờ khai",
+        "nhom": "Đối chiếu chéo",
+        "cong_thuc": "SUM[HD_BAN_RA | Thành tiền] - [03/TNDN | PL 03-1A | ct01]",
+        "dieu_kien_rui_ro": "!= 0",
+        "thong_diep_rui_ro": "Doanh thu xuất hóa đơn bị lệch so với Doanh thu khai báo quyết toán TNDN.",
+        "thong_diep_an_toan": "Doanh thu xuất hóa đơn khớp với Doanh thu khai báo."
+    },
+    "PT_03": {
+        "ten_phan_tich": "131",
+        "nhom": "Phân tích BCTC",
+        "cong_thuc": "(TK[PS_NO | 131]) - (TK[PS_CO | 511]+TK[PS_CO | 3331])",
+        "dieu_kien_rui_ro": "!= 0",
+        "thong_diep_rui_ro": "Chênh lệch",
+        "thong_diep_an_toan": "OK"
+    }
+}
