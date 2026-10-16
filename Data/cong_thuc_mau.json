@@ -1,0 +1,557 @@
+{
+  "PT_01": {
+    "ten_phan_tich": "So sánh doanh thu tính thuế TNDN và doanh thu kê khai thuế GTGT",
+    "nhom": "Báo cáo Đối chiếu chéo dữ liệu",
+    "cong_thuc": "([01/GTGT | ChiTieuChinh | ct34]) - ([03/TNDN | PL 03-1A | ct04])",
+    "dieu_kien_rui_ro": "!= 0",
+    "thong_diep_rui_ro": "Chênh lệch doanh thu tính thuế TNDN và doanh thu kê khai thuế GTGT, kiểm tra chi tiết nguyên nhân chênh lệch",
+    "thong_diep_an_toan": "Không chênh lệch"
+  },
+  "PT_02": {
+    "ten_phan_tich": "Đối chiếu Doanh thu Quyết toán TNDN và TK 511",
+    "nhom": "Báo cáo Đối chiếu chéo dữ liệu",
+    "cong_thuc": "([03/TNDN | PL 03-1A | ct04]) - ([BCTC_TT133 | CDTK_CoPhatSinh | ct511])",
+    "dieu_kien_rui_ro": "!= 0",
+    "thong_diep_rui_ro": "Có chênh lệch Doanh thu Quyết toán TNDN và TK 511, kiểm tra nguyên nhân chênh lệch.",
+    "thong_diep_an_toan": "Không có chênh lệch"
+  },
+  "PT_03": {
+    "ten_phan_tich": "Đối chiếu Phải thu của khách hàng và Doanh thu trên tờ khai GTGT",
+    "nhom": "Báo cáo Đối chiếu chéo dữ liệu",
+    "cong_thuc": "([BCTC_TT133 | CDTK_NoPhatSinh | ct131]) - ([01/GTGT | ChiTieuChinh | ct34])",
+    "dieu_kien_rui_ro": "!= 0",
+    "thong_diep_rui_ro": "Rủi ro chênh lệch doanh thu và phải thu khách hàng.",
+    "thong_diep_an_toan": "Không có chênh lệch"
+  },
+  "PT_05": {
+    "ten_phan_tich": "Kiểm tra Thu nhập khác",
+    "nhom": "Báo cáo Đối chiếu chéo dữ liệu",
+    "cong_thuc": "[03/TNDN | PL 03-1A | ct19]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Doanh nghiệp phát sinh các khoản thu nhập khác, kiểm tra chi tiết thuộc trường hợp có hoặc không phải kê khai tính thuế GTGT",
+    "thong_diep_an_toan": "Không phát sinh Thu nhập khác"
+  },
+  "PT_06": {
+    "ten_phan_tich": "Kiểm tra phát sinh nợ TK 131 và phát sinh có (TK 511 + TK 3331)",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "([BCTC_TT133 | CDTK_NoPhatSinh | ct131]) - ([BCTC_TT133 | CDTK_CoPhatSinh | ct511] + [BCTC_TT133 | CDTK_CoPhatSinh | ct3331])",
+    "dieu_kien_rui_ro": "!= 0",
+    "thong_diep_rui_ro": "Dấu hiệu của việc khai thiếu doanh thu, thiếu thuế GTGT đầu ra.",
+    "thong_diep_an_toan": "Không chênh lệch"
+  },
+  "PT_07": {
+    "ten_phan_tich": "Kiểm tra chỉ tiêu Giảm trừ các khoản doanh thu đã tính thuế năm trước (B9)",
+    "nhom": "Báo cáo Đối chiếu chéo dữ liệu",
+    "cong_thuc": "[03/TNDN | ChiTieuChinh | ctB9]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Yêu cầu DN giải trình cung cấp chi tiêt các khoản điều chỉnh trên.",
+    "thong_diep_an_toan": "Không phát sinh"
+  },
+  "PT_08": {
+    "ten_phan_tich": "Kiểm tra Chi phí của phần doanh thu điều chỉnh tăng (B10)",
+    "nhom": "Báo cáo Đối chiếu chéo dữ liệu",
+    "cong_thuc": "[03/TNDN | ChiTieuChinh | ctB10]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Yêu cầu DN giải trình cung cấp chi tiêt các khoản điều chỉnh trên.",
+    "thong_diep_an_toan": "Không phát sinh"
+  },
+  "PT_09": {
+    "ten_phan_tich": "Kiểm tra các khoản điều chỉnh làm giảm lợi nhuận trước thuế khác (B11)",
+    "nhom": "Báo cáo Đối chiếu chéo dữ liệu",
+    "cong_thuc": "[03/TNDN | ChiTieuChinh | ctB10]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Yêu cầu DN giải trình cung cấp chi tiêt các khoản điều chỉnh trên",
+    "thong_diep_an_toan": "Không phát sinh"
+  },
+  "PT_10": {
+    "ten_phan_tich": "Kiểm tra Thu nhập chịu thuế từ hoạt động chuyển nhượng BĐS",
+    "nhom": "Báo cáo Đối chiếu chéo dữ liệu",
+    "cong_thuc": "[03/TNDN | ChiTieuChinh | ctB15]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Có phát sinh Thu nhập chịu thuế từ hoạt động chuyển nhượng BĐS, kiểm tra DN đã kê khai Phụ lục 03-5_TNDN chưa",
+    "thong_diep_an_toan": "Không phát sinh"
+  },
+  "PT_11": {
+    "ten_phan_tich": "Kiểm tra Thu nhập miễn thuế (chỉ tiêu C12)",
+    "nhom": "Báo cáo Đối chiếu chéo dữ liệu",
+    "cong_thuc": "[03/TNDN | ChiTieuChinh | ctC12]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Yêu cầu DN cung cấp để xác định doanh thu có được miễn thuế theo quy định hay không.",
+    "thong_diep_an_toan": "Không phát sinh"
+  },
+  "PT_12": {
+    "ten_phan_tich": "Kiểm tra số dư có TK 131",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "[BCTC_TT133 | CDTK_CoCuoiKy | ct131]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Kiểm tra nội dung chi tiết của các số dư: trường hợp người mua trả tiền trước cần kiểm tra kỹ hợp đồng; trường hợp hàng hoá đã tiêu thụ nhưng chưa thu tiền (theo chế độ kế toán doanh nghiệp được hạch toán vào TK này) phải ghi nhận doanh thu để tính thuế (theo quy định của pháp luật thuế).",
+    "thong_diep_an_toan": "Không phát sinh"
+  },
+  "PT_13": {
+    "ten_phan_tich": "Kiểm tra số Dư có trên tài khoản 3387",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "[BCTC_TT133 | CDTK_CoCuoiKy | ct3387]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "kiểm tra chi tiết nội dung của doanh thu chưa thực hiện; trường hợp hàng hoá đã chuyển giao, nhưng chưa thu được tiền (theo chế độ kế toán doanh nghiệp được hạch toán vào TK này) phải ghi nhận doanh thu để tính thuế (theo quy định của pháp luật thuế); trường hợp thu tiền theo tiến độ của các doanh nghiệp kinh doanh hạ tầng, kinh doanh bất động sản (theo chế độ kế toán doanh nghiệp được hạch toán vào TK này) phải ghi nhận doanh thu để tính thuế (theo quy định của pháp luật thuế); trường hợp xây dựng cơ bản các hạng mục công trình đã hoàn thành nghiệm thu, bàn giao (theo chế độ kế toán doanh nghiệp được hạch toán vào TK này) phải ghi nhận doanh thu để tính thuế (theo quy định của pháp luật thuế).",
+    "thong_diep_an_toan": "Không có số dư"
+  },
+  "PT_14": {
+    "ten_phan_tich": "Kiểm tra số Dư nợ trên tài khoản 157",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "[BCTC_TT133 | CDTK_NoCuoiKy | ct157]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "kiểm tra chi tiết nội dung của số dư; trường hợp trị giá của hàng hoá, thành phẩm đã gửi cho khách hàng, nhưng chưa được xác định là đã bán theo chuẩn mực kế toán thì phải ghi nhận doanh thu để tính thuế theo quy định của pháp luật thuế.",
+    "thong_diep_an_toan": "Không có số dư"
+  },
+  "PT_15": {
+    "ten_phan_tich": "Kiểm tra số Dư nợ trên TK 154 (đối với xây dựng cơ bản)",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "[BCTC_TT133 | CDTK_NoCuoiKy | ct154]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Kiểm tra kỹ nội dung chi tiết của số dư, đối chiếu với hợp đồng, tiến độ thực hiện hợp đồng, biên bản nghiệm thu, bàn giao đối với các hạng mục công trình đã hoàn thành để ghi nhận doanh thu tinh thuế theo quy định của pháp luật thuế.",
+    "thong_diep_an_toan": "Không có số dư"
+  },
+  "PT_16": {
+    "ten_phan_tich": "Kiểm tra số Dư nợ trên tài khoản 136 (Phản ánh số nợ còn phải thu ở các đơn vị nội bộ)",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "[BCTC_TT133 | CDTK_NoCuoiKy | ct136]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Kiểm tra, xem xét nội dung và tính chất của khoản phải thu; trường hợp là tiền bán hàng hoá cho các đơn vị nội bộ, nhưng chưa ghi nhận doanh thu theo chế độ kế toán thì phải ghi nhận doanh thu tinh thuế theo quy định của pháp luật thuế.",
+    "thong_diep_an_toan": "Không có số dư"
+  },
+  "PT_17": {
+    "ten_phan_tich": "Kiểm tra số Dư nợ trên TK 138 - Phải thu khác",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "[BCTC_TT133 | CDTK_NoCuoiKy | ct138]",
+    "dieu_kien_rui_ro": "!= 0",
+    "thong_diep_rui_ro": "Xem xét thuyết minh báo cáo tài chính và có thể trao đổi với NNT để làm rõ nội dung sau đây: \n- Doanh nghiệp có phát sinh nghiệp vụ cho mượn tiền (không tính lãi) để nhận dạng dấu hiệu không khai thu nhập tài chính vào thu nhập chịu thuế TNDN (trước ngày 02/08/2014) hoặc chi phí lãy vay không phục vụ cho hoạt động kinh doanh. \n- Tài sản thiếu, mất chờ xử lý để xác định nguyên nhân và nhận dạng dấu hiệu rủi ro về thuế GTGT.",
+    "thong_diep_an_toan": "Không có số dư"
+  },
+  "PT_18": {
+    "ten_phan_tich": "Đối chiếu phát sinh có TK 154  và phát sinh nợ TK 155",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "([BCTC_TT133 | CDTK_CoPhatSinh | ct154]) - ([BCTC_TT133 | CDTK_NoPhatSinh | ct155])",
+    "dieu_kien_rui_ro": "!= 0",
+    "thong_diep_rui_ro": "Dấu hiệu bán hàng không nhập kho hoặc dùng sản phẩm trao đổi, biếu tặng, tiêu dùng nội bộ không ghi nhận doanh thu tính thuế. Yêu cầu NNT giải trình và cung cấp tài liệu để kiểm tra chi tiết làm rõ nội dung chênh lệch giữa phát sinh có TK 154 và phát sinh nợ TK 155, đối chiếu nội dung chênh lệch này với phát sinh có TK 511, 512 và phát sinh có TK 3331 để xem xét doanh nghiệp đã xuất hoá đơn, ghi nhận doanh thu và tính thuế GTGT chưa? Trường hợp chưa ghi nhận thì phải ghi nhận doanh thu tính thuế.",
+    "thong_diep_an_toan": "Không chênh lệch"
+  },
+  "PT_20": {
+    "ten_phan_tich": "Kiểm tra dư nợ TK 331",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "[BCTC_TT133 | CDTK_NoCuoiKy | ct331]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Yêu cầu NNT cung cấp chi tiết số dư nợ TK 331, hợp đồng thanh toán, chứng từ thanh toán qua Ngân hàng để kiểm tra chi tiết các nội dung trả chậm, thời hạn thanh toán theo hợp đồng, chứng từ thanh toán qua Ngân hàng ---> thực hiện điều chỉnh giảm thuế GTGT đầu vào được khấu trừ đối với các trường hợp đến hạn thanh toán, nhưng chưa có chứng từ thanh toán qua Ngân hàng.",
+    "thong_diep_an_toan": "Không có số dư"
+  },
+  "PT_21": {
+    "ten_phan_tich": "Đối chiếu PS có TK 711 và PS nợ TK 811",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "([BCTC_TT133 | CDTK_CoPhatSinh | ct711]) - ([BCTC_TT133 | CDTK_NoPhatSinh | ct811])",
+    "dieu_kien_rui_ro": "!= 0",
+    "thong_diep_rui_ro": "Rủi ro trường hợp thanh lý nhượng bán tài sản cố định (TSCĐ), vật tư, nguyên liệu hạch toán giảm phí",
+    "thong_diep_an_toan": "Không chênh lệch"
+  },
+  "PT_22": {
+    "ten_phan_tich": "Kiểm tra tăng/giảm số dư nợ tài khoản 211 - Tài sản cố định",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "[BCTC_TT133 | CDTK_NoPhatSinh | ct211]",
+    "dieu_kien_rui_ro": "!=0",
+    "thong_diep_rui_ro": "- Trường hợp phát sinh tăng, giảm TSCĐ trên bảng cân đối kế toán thì công chức thuế xem xét thuyết minh báo cáo tài chính và có thể trao đổi với NNT để làm rõ nội dung sau đây: \n+ Xác định nguyên giá có phù hợp hay không và tài sản cố định tăng có hóa đơn, chứng từ đúng quy định hay không. \n+ Nếu TSCĐ tăng do đầu tư xây dựng cơ bản (XDCB) hoàn thành, bàn giao thì căn cứ vào kết quả kiểm tra hoặc kiểm toán các năm trước và năm nay có liên quan đến chi phí XDCB để nhận dạng dấu hiệu rủi ro. \n- Trường hợp phát sinh giảm nguyên giá trên bảng cân đối kế toán thì công chức thuế xem xét thuyết minh báo cáo tài chính và có thể trao đổi với NNT để làm rõ nội dung sau đây: \n+ TSCĐ (giảm do nguyên nhân, việc thanh lý, chuyển nhượng có hạch toán đúng quy định không (ghi giảm nguyên giá đồng thời với ghi giảm hao mòn, hạch toán vào thu nhập khác (nếu có) và chi phí khác).",
+    "thong_diep_an_toan": "Không phát sinh"
+  },
+  "PT_23": {
+    "ten_phan_tich": "Kiểm tra  trích khấu hao tài sản cố định tài khoản 214 - Hao mòn TSCĐ",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "[BCTC_TT133 | CDTK_CoPhatSinh | ct214]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "- Trường hợp NNT áp dụng phương pháp khấu hao đường thẳng (xem thuyết minh báo cáo tài chính) thì căn cứ vào thuyết minh báo cáo tài chính để xác định thời gian khấu hao bình quân (TG KHBQ) cho từng loại TSCĐ (TG KHBQ = nguyên giá (trung bình công): giá trị hao mòn), đồng thời so sánh với thời gian khấu hao tối thiểu theo quy định để ước lượng mức khấu hao NNT trích có phù hợp hay không (trường hợp này chấp nhận sai số đối với các trường hợp tăng giảm TSCĐ trong kỳ dẫn đến khấu hao không đủ 12 tháng trong năm). \n- Trường hợp NNT không áp dụng phương pháp khấu hao đường thẳng (xem thuyết minh báo cáo tài chính) thì tùy trường hợp cụ thể công chức thuế căn cứ vào thuyết minh báo cáo tài chính để xác định từng loại TSCĐ, đồng thời so sánh với quy định có liên quan để ước lượng mức khấu hao NNT trích có phù hợp hay không.\n- Trường hợp TSCĐ vô hình là quyền sử dụng đất lâu dài; công trình, nhà xây dựng trên đất không thuộc quyền sở hữu của NNT; xe ô tô chở người từ 9 chỗ ngồi trở xuống, tàu bay dân dụng và du thuyền không sử dụng cho mục đích kinh doanh có nguyên giá vượt trên 1,6 tỷ đồng; thì cần xem xét việc trích khấu khao có phù hợp với quy định pháp luật thuế TNDN hay không.",
+    "thong_diep_an_toan": "Không phát sinh"
+  },
+  "PT_24": {
+    "ten_phan_tich": "Kiểm tra tài khoản 229 - Dự phòng tổn thất tài sản",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "[BCTC_TT133 | CDTK_CoCuoiKy | ct229]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Công chức thuế xem xét thuyết minh báo cáo tài chính và có thể trao đổi với NNT để làm rõ nội dung sau đây: \n- Xác định số dư đầu, cuối kỳ, số đã trích thêm hoặc số đã hoàn nhập giảm chi phí. \n- Các khoản đầu tư tài chính dài hạn (chi tiết theo từng nơi đầu tư). \n- Bảng cân đối kế toán của tổ chức kinh tế năm trước liền kề thời điểm trích lập dự phòng mà NNT có đầu tư tài chính dài hạn.\nRủi ro: NNT trích không phù hợp, không hoàn nhập; hoặc không đủ điều kiện theo quy định.",
+    "thong_diep_an_toan": "Không phát sinh"
+  },
+  "PT_26": {
+    "ten_phan_tich": "Kiểm tra tài khoản 335 - Chi phí phải trả",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "",
+    "cong_thuc": "[BCTC_TT133 | CDTK_CoCuoiKy | ct335]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Yêu cầu NNT giải trình và cung cấp nội dung chi tiết số dư có của TK nêu trên để kiểm tra phát hiện trường hợp các khoản chi phí trả trước theo kỳ hạn mà đến kỳ hạn chưa chi hoặc chi không hết (dư có TK 335), nhưng việc ghi nhận vào chi phí được trừ vượt quá doanh thu ghi nhận trong năm; kiểm tra phát hiện các trường hợp dự phòng các công trình xây lắp đã trích nhưng hết thời gian bảo hành không sử dụng hoặc sử dụng không hết, nhưng không hoàn nhập vào thu nhập khác.---> loại khỏi chi phí được trừ.",
+    "thong_diep_an_toan": "Không phát sinh"
+  },
+  "PT_28": {
+    "ten_phan_tich": "Kiểm tra Tài khoản 3388 - Phải trả, phải nộp khác",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "[BCTC_TT133 | CDTK_CoCuoiKy | ct3388]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Công chức thuế xem xét thuyết minh báo cáo tài chính và có thể trao đổi với NNT để làm rõ nội dung sau đây: Nội dung chi tiết từng khoản số dư có TK 3388 là gì, có liên quan đến doanh thu tính thuế hoặc chí phí không được trừ hay không.",
+    "thong_diep_an_toan": "Không phát sinh"
+  },
+  "PT_29": {
+    "ten_phan_tich": "Kiểm tra số dư có Tài khoản 356 - Quỹ phát triển khoa học và công nghệ",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "[BCTC_TT133 | CDTK_CoCuoiKy | ct356]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Việc trích lập và thủ tục thông báo có phù hợp với quy định của Luật thuế TNDN và các văn bản có liên quan không (mọi trường hợp NNT có dấu hiệu khai quyết toán thuế TNDN không phù hợp đều dẫn đến có dấu hiệu xác định sai việc trích lập quỹ phát triển khoa học & công nghệ). Điều kiện trích lập có phù hợp với quy định không. Căn cứ báo cáo việc sử dụng quỹ phát triển khoa học & công nghệ, phụ lục báo cáo trích, sử dụng quỹ khoa học và công nghệ  hoặc thuyết minh của NNT về việc sử dụng quỹ khoa học và công nghệ (căn cứ theo sổ chi tiết TK 359), công chức thuế làm rõ một số nội dung: + Việc sử dụng có phù hợp với quy định của Luật thuế TNDN và các văn bản hướng dẫn thi hành. Trên cơ sở đó, đánh giá việc NNT trích lập, sử dụng có phù hợp với quy định hay không.",
+    "thong_diep_an_toan": "Không phát sinh."
+  },
+  "PT_31": {
+    "ten_phan_tich": "Kiểm tra  số phát sinh TK 413 - Chênh lệch tỷ giá hối đoái",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "",
+    "cong_thuc": "[BCTC_TT133 | CDTK_CoPhatSinh | ct413] - [BCTC_TT133 | CDTK_NoDauKy | ct413]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Công chức thuế xem xét thuyết minh báo cáo tài chính và có thể trao đổi với NNT để làm rõ nội dung sau đây: + Chênh lệch đánh giá lại các khoản mục tiền tệ cuối kỳ đã hạch toán vào chi phí thuộc trường hợp nào. + Đối chiếu với pháp luật về thuế TNDN để xác định sự phù hợp theo pháp luật về thuế TNDN, đồng thời đối chiếu với tờ khai quyết toán thuế TNDN xem NNT có điều chỉnh tăng tổng lợi nhuận trước thuế TNDN không.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_32": {
+    "ten_phan_tich": "Kiểm tra số dư có Tài khoản 331 - Phải trả cho người bán",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "[BCTC_TT133 | CDTK_CoCuoiKy | ct331]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "công chức thuế có thể trao đổi với NNT để làm rõ nội dung sau đây: \n- chi tiết TK 331 theo từng khách hàng. \n- Sổ chi tiết từng khác hàng. \n- Hợp đồng kinh tế để xác định thời hạn chậm trả. \n- Đối chiếu thời gian chậm trả giữa sổ chi tiết từng khách hàng và Hợp đồng kinh tế.",
+    "thong_diep_an_toan": "Không phát sinh"
+  },
+  "PT_33": {
+    "ten_phan_tich": "Kiểm tra Doanh thu trên tờ khai tăng/giảm đột biến",
+    "nhom": "Phân tích tỷ lệ",
+    "dieu_kien_tien_de": "",
+    "cong_thuc": "( [01/GTGT | ChiTieuChinh | ct34] / PREV[01/GTGT | ChiTieuChinh | ct34] )",
+    "dieu_kien_rui_ro": ">0.2",
+    "thong_diep_rui_ro": "Doanh thu trên tờ khai tăng/giảm đột biến từ 20% trở lên so với cùng kỳ, so với kỳ trước.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_35": {
+    "ten_phan_tich": "Kiểm tra số thuế TNCN khấu trừ trên tờ khai 05KK và 05QTT (cho các tờ khai QT TNCN trước năm 2025)",
+    "nhom": "Báo cáo Đối chiếu chéo dữ liệu",
+    "cong_thuc": "([05/QTT_TNCN | ChiTieuChinh | NVuKhauTruThue_ct31]) - ([05/KK_TNCN | ChiTieuChinh | ct29])",
+    "dieu_kien_rui_ro": "!= 0",
+    "thong_diep_rui_ro": "Chênh lệch số thuế TNCN khấu trừ trên 05KK và 05QTT.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_36": {
+    "ten_phan_tich": "Kiểm tra số dư có Tài khoản 334 - Phải trả người lao động",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "[BCTC_TT133 | CDTK_CoCuoiKy | ct334]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "- Xem xét trên Thuyết minh Báo cáo Tài chính doanh nghiệp có trích lập quỹ dự phòng tiền lương cho năm sau không? Yêu cầu doanh nghiệp giải trình và cung cấp chi tiết nội dung TK 334 của năm kiểm tra và phát sinh nợ TK 334 của tháng 1, tháng 2, tháng 3 (quý I) năm sau đó để kiểm tra phát hiện trường hợp tiền lương, tiền công và các khoản phụ cấp phải trả cho người lao động nhưng hết thời hạn nộp hồ sơ quyết toán thuế năm thực tế chưa chi (trường hợp doanh nghiệp không trích dự phòng quỹ tiền lương, hoặc có trích lập nhưng vẫn vượt quá số chưa chi) ---> loại khỏi chi phí được trừ.\n- Đồng thời kiểm tra nội dung chi tiết phát sinh nợ TK 334 để phát hiện các trường hợp tiền lương, tiền công của chủ doanh nghiệp tư nhân, chủ công ty trách nhiệm hữu hạn 1 thành viên (do một cá nhân làm chủ); hoặc tiền thưởng, phụ cấp không nằm trong Hợp đồng lao động, Thoả ước lao động tập thể, Quy chế tài chính, Quy chế tiền thưởng của doanh nghiệp ---> loại khỏi chi phí được trừ.",
+    "thong_diep_an_toan": "Không có số dư"
+  },
+  "PT_37": {
+    "ten_phan_tich": "Đối chiếu tài khoản 152 - Nguyên liệu, vật liệu và 621 - Chi phí nguyên liệu, vật liệu trực tiếp",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "([BCTC_TT133 | CDTK_CoPhatSinh | ct152]) - ([BCTC_TT200 | CDTK_PhatSinhNo | ct621])",
+    "dieu_kien_rui_ro": "> 0",
+    "thong_diep_rui_ro": "Yêu cầu NNT giải trình khoản chênh lệch: trường hợp vượt định mức thì yêu cầu cung cấp chi tiết TK 632 để kiểm tra việc hạch toán giảm giá vốn; trường hợp xuất bán nguyên vật liệu thì yêu cầu cung cấp chi tiết TK 511, 512 để kiểm tra việc ghi nhận doanh thu",
+    "thong_diep_an_toan": "Không chênh lệch"
+  },
+  "PT_38": {
+    "ten_phan_tich": "Kiểm tra tài khoản 229 - Dự phòng tổn thất tài sản",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "[BCTC_TT133 | CDTK_CoCuoiKy | ct229]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Yêu cầu doanh nghiệp giải trình điều kiện lập, phương pháp lập, việc xử lý các khoản dự phòng trong năm và các thủ tục kèm theo để kiểm tra phát hiện các trường hợp trích lập và hoàn nhập dự phòng không đúng quy định.",
+    "thong_diep_an_toan": "Không phát sinh"
+  },
+  "PT_39": {
+    "ten_phan_tich": "Kiểm tra tài khoản 352 - Dự phòng phải trả",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "[BCTC_TT133 | CDTK_CoCuoiKy | ct352]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Yêu cầu doanh nghiệp giải trình điều kiện lập, phương pháp lập, việc xử lý các khoản dự phòng trong năm và các thủ tục kèm theo để kiểm tra phát hiện các trường hợp trích lập và hoàn nhập dự phòng không đúng quy định.",
+    "thong_diep_an_toan": "Không phát sinh"
+  },
+  "PT_40": {
+    "ten_phan_tich": "Kiểm tra tài khoản 242 - Chi phí trả trước",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "[BCTC_TT133 | CDTK_CoCuoiKy | ct242]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Yêu cầu doanh nghiệp giải trình điều kiện lập, phương pháp lập, việc xử lý các khoản dự phòng trong năm và các thủ tục kèm theo để kiểm tra phát hiện các trường hợp trích lập và hoàn nhập dự phòng không đúng quy định.",
+    "thong_diep_an_toan": "Không phát sinh"
+  },
+  "PT_42": {
+    "ten_phan_tich": "Kiểm tra tài khoản 331 - Phải trả người bán với Tổng doanh số mua vào đã có thuế GTGT của 12 tháng.",
+    "nhom": "Báo cáo Đối chiếu chéo dữ liệu",
+    "dieu_kien_tien_de": "",
+    "cong_thuc": "([BCTC_TT133 | CDTK_CoPhatSinh | ct331]) - ([01/GTGT | ChiTieuChinh | ct23] + [01/GTGT | ChiTieuChinh | ct24])",
+    "dieu_kien_rui_ro": "!= 0",
+    "thong_diep_rui_ro": "Chênh lệch giữa tài khoản tài khoản 331 - Phải trả người bán với Tổng doanh số mua vào đã có thuế GTGT của 12 tháng.",
+    "thong_diep_an_toan": "Không chênh lệch"
+  },
+  "PT_43": {
+    "ten_phan_tich": "Đối chiếu số liệu giữa phát sinh có TK 154 với phát sinh nợ (TK 621 + TK 622 + TK 623 + TK 627)",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "cong_thuc": "([BCTC_TT133 | CDTK_CoPhatSinh | ct154]) - ([BCTC_TT200 | CDTK_PhatSinhNo | ct621] + [BCTC_TT200 | CDTK_PhatSinhNo | ct622] + [BCTC_TT200 | CDTK_PhatSinhNo | ct623] + [BCTC_TT200 | CDTK_PhatSinhNo | ct627])",
+    "dieu_kien_rui_ro": "> 0",
+    "thong_diep_rui_ro": "Chênh lệch số liệu giữa phát sinh có TK 154 với phát sinh nợ (TK 621 + TK 622 + TK 623 + TK 627)",
+    "thong_diep_an_toan": "Không chênh lệch"
+  },
+  "PT_44": {
+    "ten_phan_tich": "Kiểm tra tài khoản 334 - Phải trả người lao động với Quyết toán thuế TNCN",
+    "nhom": "Báo cáo Đối chiếu chéo dữ liệu",
+    "cong_thuc": "([BCTC_TT133 | CDTK_NoPhatSinh | ct334]) - ([05/QTT_TNCN | ChiTieuChinh | NVuKhauTruThue_ct23])",
+    "dieu_kien_rui_ro": "> 0",
+    "thong_diep_rui_ro": "Chênh lệch chi trả giữa tài khoản 334 Phải trả người lao động với Tổng thu nhập chịu thuế trả cho cá nhân trên Quyết toán thuế TNCN",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_45": {
+    "ten_phan_tich": "Đối chiếu số phát sinh có TK 155/156 chênh lệch so với TK 632",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "",
+    "cong_thuc": "([BCTC_TT133 | CDTK_CoPhatSinh | ct155] + [BCTC_TT133 | CDTK_CoPhatSinh | ct156]) - ([BCTC_TT133 | CDTK_NoPhatSinh | ct632])",
+    "dieu_kien_rui_ro": "> 0",
+    "thong_diep_rui_ro": "Cần xem xét thành phẩm, hàng hóa xuất kho để làm gì, nếu biếu tặng có đáp ứng quy định của pháp luật thuế không. Rủi ro: - NNT khai thiếu doanh thu tính thuế GTGT hoặc doanh thu tính thuế TNDN.\n- Hàng biếu tặng không đúng quy định của pháp luật về thương mại; Trường hợp có thể kết hợp với mục 1.23 số phát sinh tài khoản 511 chênh lệch so với tổng doanh thu TK thuế GTGT 12 tháng/4 Quý để phân tích thêm.\n- Hàng biếu tặng khuyến mại không đáp ứng theo quy định của pháp luật về thương mại, nhưng doanh nghiệp lập hóa đơn đúng quy định thì chỉ xử lý về thuế GTGT.",
+    "thong_diep_an_toan": "Không chênh lệch"
+  },
+  "PT_46": {
+    "ten_phan_tich": "Tỷ lệ trị giá hàng hoá, dịch vụ mua vào so với doanh số bán ra của kỳ kê khai",
+    "nhom": "Phân tích tỷ lệ",
+    "dieu_kien_tien_de": "",
+    "cong_thuc": "([01/GTGT | ChiTieuChinh | ct23] / [01/GTGT | ChiTieuChinh | ct34]) - (1)",
+    "dieu_kien_rui_ro": "> 0",
+    "thong_diep_rui_ro": "Đánh giá và theo dõi sự biến động về kê khai thuế GTGT đầu ra và hàng tồn kho. Nếu giá trị hàng hoá mua vào trong kỳ lớn hơn doanh số bán ra thì khả năng phát sinh hàng hoá tồn kho, hoặc kê khai trùng giá trị hàng hoá mua vào kỳ này hoặc các kỳ trước, hoặc giá bán hàng hoá thấp hơn giá vốn, hoặc bán hàng không ghi nhận doanh thu, hoặc khai thiếu doanh thu.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_47": {
+    "ten_phan_tich": "Khai doanh thu hàng hoá, dịch vụ bán ra không chịu thuế GTGT",
+    "nhom": "Báo cáo Đối chiếu chéo dữ liệu",
+    "dieu_kien_tien_de": "[01/GTGT | ChiTieuChinh | ct26] >0",
+    "cong_thuc": "[01/GTGT | ChiTieuChinh | ct25] - [01/GTGT | ChiTieuChinh | ct22] - [01/GTGT | ChiTieuChinh | ct24]",
+    "dieu_kien_rui_ro": ">=0",
+    "thong_diep_rui_ro": "Đánh giá mức độ tuân thủ kê khai thuế GTGT khi phát sinh doanh thu hàng hóa, dịch vụ bán ra không chịu thuế GTGT và việc phân bổ thuế GTGT đầu vào được khấu trừ tương ứng. Trường hợp phát sinh doanh thu hàng hoá, dịch vụ bán ra không chịu thuế GTGT thì có thể xảy ra khả năng nhầm lẫn giữa đối tượng chịu thuế và không chịu thuế GTGT; khả năng phân bổ thuế GTGT được khấu trừ có nhiều sai sót.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_48": {
+    "ten_phan_tich": "Tổng doanh thu trong kỳ kê khai so với vốn điều lệ",
+    "nhom": "Phân tích tỷ lệ",
+    "dieu_kien_tien_de": "",
+    "cong_thuc": "[01/GTGT | ChiTieuChinh | ct34] / [BCTC_TT133 | CDKT_SoCuoiNam | ct411]",
+    "dieu_kien_rui_ro": ">5",
+    "thong_diep_rui_ro": "Đánh giá tỷ lệ tăng doanh thu so với vốn chủ sở hữu của đơn vị. Nếu trường hợp tổng doanh thu trong kỳ tăng đột biến so với vốn chủ sở hữu thì cho thấy dấu hiệu cần kiểm tra về hàng hóa mua vào và doanh thu bán ra để phát hiện các trường hợp bất hợp lý trong việc sử dụng hóa đơn bất hợp pháp, khai khống doanh thu, ...",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_49": {
+    "ten_phan_tich": "Kiểm tra chênh lệch đánh giá lại tài sản mang đi góp vốn vào đơn vị khác",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "( [BCTC_TT200 | CDTK_PhatSinhNo | ct221] + [BCTC_TT200 | CDTK_PhatSinhNo | ct222] + [BCTC_TT133 | CDTK_NoPhatSinh | ct228] )>0 and ( [BCTC_TT133 | CDTK_CoPhatSinh | ct152] + [BCTC_TT133 | CDTK_CoPhatSinh | ct155] + [BCTC_TT133 | CDTK_CoPhatSinh | ct156] + [BCTC_TT133 | CDTK_CoPhatSinh | ct211] )>0",
+    "cong_thuc": "[BCTC_TT200 | CDTK_PhatSinhCo | ct412]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Phát hiện trong kỳ doanh nghiệp có phát sinh các khoản đầu tư (ghi Nợ TK 221, 222, 228) đối ứng với việc giảm tài sản, vật tư (ghi Có TK 152, 155, 156, 211), ĐỒNG THỜI có ghi nhận Phát sinh Có tại Tài khoản 412 (Chênh lệch đánh giá lại tài sản). Việc mang tài sản đi góp vốn phải được đánh giá lại, phần chênh lệch TĂNG giữa giá trị đánh giá lại và giá trị ghi sổ phải được hạch toán vào TK 711 (Thu nhập khác) để tính thuế TNDN. Yêu cầu NNT giải trình và cung cấp chi tiết nội dung TK 412 để kiểm tra xác định số chênh lệch đánh giá lại tài sản phải tính thuế TNDN (phần thu nhập khác), phần còn lại mới được ghi nhận tăng vốn.",
+    "thong_diep_an_toan": "Không phát sinh sai lệch"
+  },
+  "PT_51": {
+    "ten_phan_tich": "Rủi ro Giấu doanh thu (Mã 312/332 - Trả tiền trước & Mã 141 - Hàng tồn kho)",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "( [BCTC_TT200 | CDKT_SoCuoiNam | ct141] - [BCTC_TT200 | CDKT_SoDauNam | ct141] )>=0",
+    "cong_thuc": "( [BCTC_TT200 | CDKT_SoCuoiNam | ct312] + [BCTC_TT200 | CDKT_SoCuoiNam | ct332] )-( [BCTC_TT200 | CDKT_SoDauNam | ct312] + [BCTC_TT200 | CDKT_SoDauNam | ct332] )",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Doanh nghiệp đã thu thêm tiền ứng trước từ khách hàng, hàng hóa/thành phẩm thực tế đã xuất kho giao cho người mua nhưng cố tình treo ở khoản mục nhận ứng trước, không xuất hóa đơn GTGT và không kê khai doanh thu tính thuế TNDN.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_50": {
+    "ten_phan_tich": "Rủi ro Chi phí phải trả treo lớn kéo dài qua nhiều kỳ (Mã 315/333 - Chi phí phải trả)",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "( [BCTC_TT200 | CDKT_SoCuoiNam | ct315] + [BCTC_TT200 | CDKT_SoCuoiNam | ct333] ) >0",
+    "cong_thuc": "( [BCTC_TT200 | CDKT_SoCuoiNam | ct315] + [BCTC_TT200 | CDKT_SoCuoiNam | ct333] )-( [BCTC_TT200 | CDKT_SoDauNam | ct315] + [BCTC_TT200 | CDKT_SoDauNam | ct333] )",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Kế toán hạch toán trích trước chi phí ảo/khống vào chi phí sản xuất kinh doanh trong năm (ghi Nợ TK chi phí / Có TK 335) để làm giảm thuế TNDN phải nộp, nhưng thực tế không chi trả và không có hóa đơn chứng từ hợp pháp. Cảnh báo rủi ro trích trước chi phí ảo: Khoản chi phí phải trả (TK 335) treo lớn kéo dài không hoàn nhập hoặc không có chứng từ.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_52": {
+    "ten_phan_tich": "Rủi ro chi phí Tiền lương (Mã 314 - Phải trả người lao động)",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "",
+    "cong_thuc": "([BCTC_TT200 | CDKT_SoCuoiNam | ct314]) - (0)",
+    "dieu_kien_rui_ro": "> 0",
+    "thong_diep_rui_ro": "Nợ tiền lương công nhân viên đến cuối năm (Mã 314). Nếu quá thời hạn nộp hồ sơ quyết toán thuế TNDN (31/03 năm sau) mà chưa thực tế chi trả thì bị loại toàn bộ khỏi chi phí được trừ khi tính thuế TNDN.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_53": {
+    "ten_phan_tich": "Rủi ro Chi phí lãi vay (Vay nợ Mã 320/338 & Cho vay/Khác Mã 135/136/215/216)",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "( [BCTC_TT200 | CDKT_SoCuoiNam | ct320] + [BCTC_TT200 | CDKT_SoCuoiNam | ct338] )>0",
+    "cong_thuc": "[BCTC_TT200 | CDKT_SoCuoiNam | ct135] + [BCTC_TT200 | CDKT_SoCuoiNam | ct136] + [BCTC_TT200 | CDKT_SoCuoiNam | ct215] + [BCTC_TT200 | CDKT_SoCuoiNam | ct216]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Doanh nghiệp đi vay ngân hàng chịu lãi suất (Mã 320, 338), nhưng lại cho cá nhân/bên liên quan mượn tiền hoặc cho vay không tính lãi (Mã 135, 136, 215, 216 - TK 1388). Cần kiểm tra chi tiết để xác định chi phí lãi vay tương ứng.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_54": {
+    "ten_phan_tich": "Rủi ro Hoãn ghi nhận Doanh thu / Hoãn trích khấu hao (Chi phí dở dang Mã 241 & Mã 242)",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "( [BCTC_TT200 | CDKT_SoCuoiNam | ct241] + [BCTC_TT200 | CDKT_SoCuoiNam | ct242] )>0",
+    "cong_thuc": "abs((( [BCTC_TT200 | CDKT_SoCuoiNam | ct241] + [BCTC_TT200 | CDKT_SoCuoiNam | ct242] )-( [BCTC_TT200 | CDKT_SoDauNam | ct242] + [BCTC_TT200 | CDKT_SoDauNam | ct241] ))/( [BCTC_TT200 | CDKT_SoDauNam | ct242] + [BCTC_TT200 | CDKT_SoDauNam | ct241] ))",
+    "dieu_kien_rui_ro": ">=0.1",
+    "thong_diep_rui_ro": "Dự án, công trình, sản xuất dở dang (Mã 241 - TK 154 dài hạn; Mã 242 - TK 241) treo dở dang nhiều năm không giảm, không kết chuyển sang tài sản/giá vốn nhằm hoãn ghi nhận doanh thu tính thuế.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_55": {
+    "ten_phan_tich": "Doanh thu chưa thực hiện treo không phân bổ (318 336)",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "( [BCTC_TT200 | CDKT_SoCuoiNam | ct318] + [BCTC_TT200 | CDKT_SoCuoiNam | ct336] )>0",
+    "cong_thuc": "( [BCTC_TT200 | CDKT_SoCuoiNam | ct318] + [BCTC_TT200 | CDKT_SoCuoiNam | ct336] )/( [BCTC_TT200 | CDKT_SoDauNam | ct336] + [BCTC_TT200 | CDKT_SoDauNam | ct318] )",
+    "dieu_kien_rui_ro": ">=0.9",
+    "thong_diep_rui_ro": "Rủi ro Nhận tiền trước nhiều năm nhưng treo trên TK 3387 không phân bổ vào doanh thu tính thuế TNDN hàng năm theo cam kết hoặc không kê khai thuế TNDN một lần theo quy định.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_56": {
+    "ten_phan_tich": "Hàng tồn kho chiếm tỷ trọng quá lớn, không biến động",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "( [BCTC_TT200 | CDKT_SoCuoiNam | ct141] - [BCTC_TT200 | CDKT_SoDauNam | ct141] )>0",
+    "cong_thuc": "( [BCTC_TT200 | CDKT_SoCuoiNam | ct141] / [BCTC_TT200 | CDKT_SoDauNam | ct100] )",
+    "dieu_kien_rui_ro": ">0.4",
+    "thong_diep_rui_ro": "Doanh nghiệp thực tế đã bán xong hàng hóa/thành phẩm thu tiền mặt nhưng không xuất hóa đơn (bỏ ngoài sổ sách doanh thu để trốn thuế GTGT, TNDN). Hàng xuất kho thực tế đã hết nhưng trên sổ kế toán vẫn treo tồn kho ảo rất cao. Cảnh báo rủi ro hàng tồn kho ảo: Kho chiếm >40% tài sản ngắn hạn và tăng/bất động, rủi ro đã bán không xuất hóa đơn.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_57": {
+    "ten_phan_tich": "Chi phí trả trước ngắn/dài hạn treo quá lớn",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "( [BCTC_TT200 | CDKT_SoCuoiNam | ct151] + [BCTC_TT200 | CDKT_SoCuoiNam | ct261] )>0",
+    "cong_thuc": "( [BCTC_TT200 | CDKT_SoCuoiNam | ct151] + [BCTC_TT200 | CDKT_SoCuoiNam | ct261] )/ [BCTC_TT200 | CDKT_SoCuoiNam | ct270]",
+    "dieu_kien_rui_ro": ">0.15",
+    "thong_diep_rui_ro": "Cảnh báo rủi ro chi phí trả trước: TK 242 chiếm tỷ trọng lớn (>15% tổng tài sản), rủi ro hoãn chi phí trái quy định.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_58": {
+    "ten_phan_tich": "Trả tiền trước tăng/Hàng tồn kho không giảm",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "(( [BCTC_TT200 | CDKT_SoCuoiNam | ct332] + [BCTC_TT200 | CDKT_SoCuoiNam | ct312] )-( [BCTC_TT200 | CDKT_SoDauNam | ct332] + [BCTC_TT200 | CDKT_SoDauNam | ct312] ))>0",
+    "cong_thuc": "[BCTC_TT133 | CDKT_SoCuoiNam | ct141] - [BCTC_TT133 | CDKT_SoDauNam | ct141]",
+    "dieu_kien_rui_ro": ">=0",
+    "thong_diep_rui_ro": "Cảnh báo rủi ro hoãn/giấu doanh thu tính thuế GTGT & TNDN: Khách hàng ứng thêm tiền nhưng kho không giảm.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_59": {
+    "ten_phan_tich": "Chi phí phải trả kéo dài qua nhiều kỳ",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "( [BCTC_TT200 | CDKT_SoCuoiNam | ct315] + [BCTC_TT200 | CDKT_SoCuoiNam | ct333] )>0",
+    "cong_thuc": "( [BCTC_TT200 | CDKT_SoCuoiNam | ct333] + [BCTC_TT200 | CDKT_SoCuoiNam | ct315] ) / ( [BCTC_TT200 | CDKT_SoDauNam | ct333] + [BCTC_TT200 | CDKT_SoDauNam | ct315] )",
+    "dieu_kien_rui_ro": ">=0.8",
+    "thong_diep_rui_ro": "Cảnh báo rủi ro trích trước chi phí ảo: Khoản chi phí phải trả kéo dài không hoàn nhập hoặc không có chứng từ.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_60": {
+    "ten_phan_tich": "Kiểm tra Phải trả người lao động (mã 314)",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "",
+    "cong_thuc": "([BCTC_TT200 | CDKT_SoCuoiNam | ct314]) - (0)",
+    "dieu_kien_rui_ro": "> 0",
+    "thong_diep_rui_ro": "Cảnh báo rủi ro chi phí tiền lương mà doanh nghiệp chưa thực tế chi trả đến thời hạn nộp hồ sơ quyết toán thuế TNDN (ngày 31/03 năm sau). Cần xác định thời điểm chi trả đúng quy định không.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_61": {
+    "ten_phan_tich": "Rủi ro Trích lập Dự phòng không đủ hồ sơ chứng từ",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "",
+    "cong_thuc": "([BCTC_TT200 | CDKT_SoCuoiNam | ct137] + [BCTC_TT200 | CDKT_SoCuoiNam | ct219] + [BCTC_TT200 | CDKT_SoCuoiNam | ct149] + [BCTC_TT200 | CDKT_SoCuoiNam | ct254]) - (0)",
+    "dieu_kien_rui_ro": "> 0",
+    "thong_diep_rui_ro": "Cảnh báo rủi ro chi phí dự phòng: Trích lập dự phòng để tính vào chi phí quản lý/giá vốn nhằm giảm thuế TNDN nhưng không có đủ hồ sơ chứng minh theo quy định",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_62": {
+    "ten_phan_tich": "Rủi ro chi phí lãi vay",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "[BCTC_TT200 | CDKT_SoCuoiNam | ct111] >500000000",
+    "cong_thuc": "[BCTC_TT200 | CDKT_SoCuoiNam | ct320] + [BCTC_TT200 | CDKT_SoCuoiNam | ct338]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Cảnh báo rủi ro quỹ tiền mặt ảo: Tồn quỹ tiền mặt lớn nhưng vẫn phát sinh chi phí lãi vay",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_63": {
+    "ten_phan_tich": "Rủi ro trả trước người bán ngắn/dài hạn",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "( [BCTC_TT200 | CDKT_SoCuoiNam | ct132] + [BCTC_TT200 | CDKT_SoCuoiNam | ct212] )>0",
+    "cong_thuc": "abs(( [BCTC_TT200 | CDKT_SoCuoiNam | ct132] + [BCTC_TT200 | CDKT_SoCuoiNam | ct212] )-( [BCTC_TT200 | CDKT_SoDauNam | ct212] + [BCTC_TT200 | CDKT_SoDauNam | ct132] ))/( [BCTC_TT200 | CDKT_SoDauNam | ct212] + [BCTC_TT200 | CDKT_SoDauNam | ct132] )",
+    "dieu_kien_rui_ro": "<0.95",
+    "thong_diep_rui_ro": "Cảnh báo rủi ro: Ứng tiền cho nhà cung cấp/bên liên quan nhưng không nhận hàng hóa/dịch vụ, bản chất là cho mượn vốn không tính lãi, cần kiểm tra chi tiết.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_64": {
+    "ten_phan_tich": "Giấu Doanh thu qua Khoản Nhận ứng trước Khách hàng",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "[BCTC_TT133 | CDTK_CoCuoiKy | ct131] >0",
+    "cong_thuc": "( [BCTC_TT133 | CDTK_NoCuoiKy | ct154] + [BCTC_TT133 | CDTK_NoCuoiKy | ct155] + [BCTC_TT133 | CDTK_NoCuoiKy | ct156] )-( [BCTC_TT133 | CDTK_NoDauKy | ct156] + [BCTC_TT133 | CDTK_NoDauKy | ct154] + [BCTC_TT133 | CDTK_NoDauKy | ct155] )",
+    "dieu_kien_rui_ro": ">=0",
+    "thong_diep_rui_ro": "Doanh nghiệp đã thu tiền ứng trước của người mua, sản phẩm/hàng hóa thực tế đã xuất kho giao cho khách hàng nhưng cố tình treo ở dư Có TK 131, không xuất hóa đơn GTGT và hoãn kê khai doanh thu tính thuế TNDN.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_65": {
+    "ten_phan_tich": "Vay Nợ Trả Lãi (TK 341) Đồng Thời Cho Mượn Vốn (TK 1388, 128)",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "[BCTC_TT133 | CDTK_NoCuoiKy | ct341] >0",
+    "cong_thuc": "[BCTC_TT133 | CDTK_NoCuoiKy | ct1388] + [BCTC_TT133 | CDTK_NoCuoiKy | ct128]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Doanh nghiệp đi vay ngân hàng phát sinh chi phí lãi vay (TK 635), nhưng trên sổ sách lại cho cá nhân/bên liên quan mượn vốn không tính lãi.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_66": {
+    "ten_phan_tich": "Tồn quỹ tiền mặt ảo (TK 111 dư Nợ Lớn) nhưng vay nợ trả lãi (TK 341)",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "[BCTC_TT133 | CDTK_NoCuoiKy | ct111] >500000000",
+    "cong_thuc": "[BCTC_TT133 | CDTK_CoCuoiKy | ct341]",
+    "dieu_kien_rui_ro": ">0",
+    "thong_diep_rui_ro": "Tồn quỹ tiền mặt trên sổ sách rất lớn nhưng doanh nghiệp vẫn đi vay trả lãi.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_67": {
+    "ten_phan_tich": "Rủi ro Bán hàng không xuất hóa đơn (Hàng tồn kho TK 152, 155, 156 tồn lớn)",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "( [BCTC_TT133 | CDTK_NoCuoiKy | ct152] + [BCTC_TT133 | CDTK_NoCuoiKy | ct155] + [BCTC_TT133 | CDTK_NoCuoiKy | ct156] )>0",
+    "cong_thuc": "( [BCTC_TT133 | CDTK_NoCuoiKy | ct152] + [BCTC_TT133 | CDTK_NoCuoiKy | ct155] + [BCTC_TT133 | CDTK_NoCuoiKy | ct156] )/( [BCTC_TT133 | CDTK_CoPhatSinh | ct511] - [BCTC_TT133 | CDTK_NoPhatSinh | ct511] )",
+    "dieu_kien_rui_ro": ">1.5",
+    "thong_diep_rui_ro": "Hàng tồn kho cuối kỳ gấp hơn 1,5 lần doanh thu cả năm. Dấu hiệu đã xuất bán hàng thu tiền thực tế nhưng không xuất hóa đơn, treo tồn kho ảo trên sổ để trốn thuế GTGT và TNDN.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_68": {
+    "ten_phan_tich": "Thu Nhập Khác từ Thanh Lý TSCĐ / Phạt Hợp Đồng",
+    "nhom": "Phân tích Báo cáo tài chính",
+    "dieu_kien_tien_de": "[BCTC_TT133 | CDTK_CoPhatSinh | ct211] >0",
+    "cong_thuc": "[BCTC_TT133 | CDTK_CoPhatSinh | ct711]",
+    "dieu_kien_rui_ro": "==0",
+    "thong_diep_rui_ro": "Rủi ro: Có phát sinh giảm TSCĐ nhưng không hạch toán thu nhập khác trên TK 711, rủi ro bỏ sót nghĩa vụ thuế TNDN.",
+    "thong_diep_an_toan": "OK"
+  },
+  "PT_69": {
+    "ten_phan_tich": "Kiểm tra số thuế TNCN đã khấu trừ",
+    "nhom": "Báo cáo Đối chiếu chéo dữ liệu",
+    "bien_so": {
+      "A": "[05/KK_TNCN | ChiTieuChinh | ct29]",
+      "B": "[05/QTT_TNCN | ChiTieuChinh | NVuKhauTruThue_ct31]"
+    },
+    "hien_thi_ve_a": "A",
+    "hien_thi_ve_b": "B",
+    "bieu_thuc_rui_ro": "abs(A-B)>0",
+    "thong_diep_rui_ro": "Chênh lệch số thuế TNCN đã khấu trừ trên 05/KK và 05/QTT. Yêu cầu giải trình.",
+    "thong_diep_an_toan": "Khớp đúng số thuế TNCN đã khấu trừ giữa 05/KK và 05/QTT."
+  },
+  "PT_70": {
+    "ten_phan_tich": "Kiểm tra tổng thu nhập chịu thuế trả cho cá nhân",
+    "nhom": "Báo cáo Đối chiếu chéo dữ liệu",
+    "bien_so": {
+      "A": "[05/KK_TNCN | ChiTieuChinh | ct21]",
+      "B": "[05/QTT_TNCN | ChiTieuChinh | NVuKhauTruThue_ct23]"
+    },
+    "hien_thi_ve_a": "A",
+    "hien_thi_ve_b": "B",
+    "bieu_thuc_rui_ro": "abs(A-B)>0",
+    "thong_diep_rui_ro": "Chênh lệch tổng thu nhập chịu thuế trả cho cá nhân 05/KK và 05/QTT",
+    "thong_diep_an_toan": "Khớp đúng tổng thu nhập chịu thuế trả cho cá nhân giữa 05/KK và 05/QTT."
+  },
+  "PT_71": {
+    "ten_phan_tich": "Kiểm tra Tổng thu nhập chịu thuế trả cho cá nhân thuộc diện phải khấu trừ thuế",
+    "nhom": "Báo cáo Đối chiếu chéo dữ liệu",
+    "bien_so": {
+      "A": "[05/KK_TNCN | ChiTieuChinh | ct26]",
+      "B": "[05/QTT_TNCN | ChiTieuChinh | NVuKhauTruThue_ct28]"
+    },
+    "hien_thi_ve_a": "A",
+    "hien_thi_ve_b": "B",
+    "bieu_thuc_rui_ro": "abs(A-B)>0",
+    "thong_diep_rui_ro": "Có chênh lệch giữa Tổng thu nhập chịu thuế trả cho cá nhân thuộc diện phải khấu trừ thuế trên 05/KK và 05/QTT",
+    "thong_diep_an_toan": "Khớp đúng tổng thu nhập chịu thuế trả cho cá nhân thuộc diện khấu trừ giữa 05/KK và 05/QTT."
+  }
+}

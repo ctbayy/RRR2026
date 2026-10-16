@@ -1,0 +1,90 @@
+{
+  "danh_muc_tag": {
+    "1_CHI_PHI_CO_BAN_VA_TAI_SAN": {
+      "Mô tả": "Đây là nhóm KIM BÀI MIỄN TỬ. Gần như công ty nào cũng có, không mang đi đọ với đầu ra để tránh báo lỗi ảo.",
+      "[CHI_PHI_QUAN_LY]": ["điện", "nước", "internet", "viễn thông", "văn phòng phẩm", "giấy", "mực in", "tiếp khách", "thuê văn phòng", "phần mềm", "kế toán", "chữ ký số"],
+      "[TAI_SAN_MAY_MOC]": ["ô tô", "xe tải", "máy xúc", "máy đào", "cẩu", "máy in", "máy tính", "laptop", "điều hòa", "bàn ghế", "dây chuyền"],
+      "[NHIEN_LIEU_LOGISTICS]": ["vận chuyển", "bốc xếp", "lưu kho", "giao nhận", "cước", "xăng", "dầu", "diesel", "do"]
+    },
+
+    "2_VAT_TU_VA_HANG_HOA": {
+      "Mô tả": "Nhóm đầu vào trực tiếp cấu thành nên sản phẩm hoặc để bán lại.",
+      "[VLXD_CỐT_LÕI]": ["sắt", "thép", "cuộn", "vằn", "cát", "đá", "xi măng", "gạch", "ngói", "bê tông"],
+      "[VLXD_HOÀN_THIỆN]": ["sơn", "bột bả", "thạch cao", "nhôm", "kính", "gạch ốp", "thiết bị vệ sinh"],
+      "[GỖ_NỘI_THẤT]": ["gỗ", "mdf", "mfc", "veneer", "bản lề", "keo dán gỗ", "ốc vít"],
+      "[MAY_MẶC_DA_GIÀY]": ["vải", "chỉ", "khuy", "khóa", "bông", "mút", "da"],
+      "[NÔNG_LÂM_THỦY_SẢN]": ["thóc", "gạo", "phân bón", "cám", "thuốc trừ sâu", "giống", "thức ăn chăn nuôi", "cá", "tôm", "mực", "gỗ tròn", "dăm gỗ"],
+      "[LINH_KIỆN_ĐIỆN_TỬ]": ["chip", "bo mạch", "ic", "màn hình", "pin", "dây cáp", "chuột", "bàn phím"],
+      "[Y_TẾ_DƯỢC_PHẨM]": ["thuốc", "bơm tiêm", "bông băng", "cồn", "hóa chất y tế", "thiết bị y tế"]
+    },
+
+    "3_DAU_RA_SAN_PHAM_DICH_VU": {
+      "Mô tả": "Nhóm doanh thu đầu ra đặc thù của doanh nghiệp.",
+      "[THÀNH_PHẨM_XÂY_DỰNG]": ["xây dựng", "thi công", "san lấp", "hạng mục", "nhà xưởng", "nghiệm thu", "cải tạo", "bảo dưỡng"],
+      "[THÀNH_PHẨM_NỘI_THẤT]": ["giường", "tủ", "bàn", "ghế", "sofa", "kệ", "tủ bếp"],
+      "[THÀNH_PHẨM_MAY_MẶC]": ["áo", "quần", "váy", "đầm", "giày", "dép", "mũ", "balo", "túi xách"],
+      "[DỊCH_VỤ_VẬN_TẢI]": ["dịch vụ vận chuyển", "chở hàng", "cho thuê xe", "vận tải hành khách", "cho thuê cẩu"],
+      "[DỊCH_VỤ_CHẤT_XÁM]": ["tư vấn", "thiết kế", "giám sát", "lập trình", "bảo trì phần mềm", "quảng cáo", "marketing", "đào tạo"]
+    }
+  },
+
+  "luat_cung_ung": [
+    {
+      "ma_loai_hinh": "TM_01",
+      "ten_mo_hinh": "Thương mại hàng hóa thông thường",
+      "mieu_ta": "Mô hình Mua gì Bán nấy. Đầu vào và Đầu ra phải khớp Nhãn (Tag) với nhau.",
+      "quy_tac_doi_chieu": "TRUNG_KHOP_TAG",
+      "dau_vao_bat_buoc": [],
+      "dau_ra_hop_le": ["*"],
+      "canh_bao_ty_trong": [
+        {"dieu_kien": "[CHI_PHI_QUAN_LY] / Tong_Doanh_Thu > 0.15", "thong_diep": "Chi phí quản lý cao bất thường (>15%). Rủi ro mua khống chi phí HĐ tiếp khách, VPP."}
+      ]
+    },
+    {
+      "ma_loai_hinh": "XD_01",
+      "ten_mo_hinh": "Xây dựng / Xây lắp công trình",
+      "mieu_ta": "Sử dụng Vật liệu xây dựng, Thuê thiết bị và Chi phí khác để nghiệm thu Công trình.",
+      "quy_tac_doi_chieu": "CHUOI_GIA_TRI",
+      "dau_vao_bat_buoc": ["[VLXD_CỐT_LÕI]", "[VLXD_HOÀN_THIỆN]"],
+      "dau_vao_phu_tro": ["[TAI_SAN_MAY_MOC]", "[NHIEN_LIEU_LOGISTICS]"],
+      "dau_ra_hop_le": ["[THÀNH_PHẨM_XÂY_DỰNG]"],
+      "canh_bao_ty_trong": [
+        {"dieu_kien": "([VLXD_CỐT_LÕI] + [VLXD_HOÀN_THIỆN]) / [THÀNH_PHẨM_XÂY_DỰNG] < 0.4", "thong_diep": "Tỷ trọng Vật tư < 40% giá trị công trình. Rủi ro xuất khống hoặc thiếu hóa đơn đầu vào."}
+      ]
+    },
+    {
+      "ma_loai_hinh": "SX_01",
+      "ten_mo_hinh": "Sản xuất / Gia công May mặc",
+      "mieu_ta": "Nhập vải, chỉ, khuy để xuất bán quần áo, balo.",
+      "quy_tac_doi_chieu": "CHUOI_GIA_TRI",
+      "dau_vao_bat_buoc": ["[MAY_MẶC_DA_GIÀY]"],
+      "dau_vao_phu_tro": ["[TAI_SAN_MAY_MOC]"],
+      "dau_ra_hop_le": ["[THÀNH_PHẨM_MAY_MẶC]"],
+      "canh_bao_ty_trong": []
+    },
+    {
+      "ma_loai_hinh": "DV_01",
+      "ten_mo_hinh": "Dịch vụ Vận tải / Logistics",
+      "mieu_ta": "Doanh thu là dịch vụ chở hàng, chi phí chủ yếu là xăng dầu và khấu hao xe.",
+      "quy_tac_doi_chieu": "CHUOI_GIA_TRI",
+      "dau_vao_bat_buoc": ["[NHIEN_LIEU_LOGISTICS]"],
+      "dau_vao_phu_tro": ["[TAI_SAN_MAY_MOC]"],
+      "dau_ra_hop_le": ["[DỊCH_VỤ_VẬN_TẢI]"],
+      "canh_bao_ty_trong": [
+        {"dieu_kien": "[NHIEN_LIEU_LOGISTICS] / [DỊCH_VỤ_VẬN_TẢI] < 0.2", "thong_diep": "Nhiên liệu chiếm < 20% Doanh thu. Rủi ro bán khống hóa đơn cước vận chuyển."}
+      ]
+    },
+    {
+      "ma_loai_hinh": "DV_02",
+      "ten_mo_hinh": "Dịch vụ Chất xám (Tư vấn, Phần mềm)",
+      "mieu_ta": "Bán chất xám, hầu như KHÔNG có vật tư đầu vào, chỉ có chi phí lương và văn phòng.",
+      "quy_tac_doi_chieu": "CHUOI_GIA_TRI",
+      "dau_vao_bat_buoc": [],
+      "dau_vao_phu_tro": ["[CHI_PHI_QUAN_LY]", "[TAI_SAN_MAY_MOC]"],
+      "dau_ra_hop_le": ["[DỊCH_VỤ_CHẤT_XÁM]"],
+      "canh_bao_ty_trong": [
+        {"dieu_kien": "Tong_Vat_Tu_Nhap_Vao > 0", "thong_diep": "Công ty tư vấn nhưng lại có hóa đơn nhập vật tư/hàng hóa. Rủi ro mua khống để cân đối thuế TNDN."}
+      ]
+    }
+  ]
+}

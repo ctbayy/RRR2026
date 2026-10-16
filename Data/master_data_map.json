@@ -1,0 +1,683 @@
+{
+    "Hoadon": [
+        {
+            "Standard_Column_Name": "STT",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "STT",
+                "STT"
+            ]
+        },
+        {
+            "Standard_Column_Name": "KyHieuMauSo",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Ký hiệu mẫu số",
+                "Ký hiệu mẫu số"
+            ]
+        },
+        {
+            "Standard_Column_Name": "KyHieuHoaDon",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Ký hiệu hóa đơn",
+                "Ký hiệu hóa đơn"
+            ]
+        },
+        {
+            "Standard_Column_Name": "SoHoaDon",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Số hóa đơn",
+                "Số hóa đơn"
+            ]
+        },
+        {
+            "Standard_Column_Name": "NgayLap",
+            "Data_Type": "datetime",
+            "Source_Column_Names": [
+                "Ngày lập",
+                "Ngày lập"
+            ]
+        },
+        {
+            "Standard_Column_Name": "MSTNguoiBan",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "MST người bán/MST người xuất hàng",
+                "MST người bán/MST người xuất hàng"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TenNguoiBan",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Tên người bán/Tên người xuất hàng",
+                "Tên người bán/Tên người xuất hàng"
+            ]
+        },
+        {
+            "Standard_Column_Name": "DiaChiNguoiBan",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Địa chỉ người bán",
+                "Địa chỉ người bán"
+            ]
+        },
+        {
+            "Standard_Column_Name": "MSTNguoiMua",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "MST người mua/MST người nhận hàng",
+                "MST người mua/MST người nhận hàng"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TenNguoiMua",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Tên người mua/Tên người nhận hàng",
+                "Tên người mua/Tên người nhận hàng"
+            ]
+        },
+        {
+            "Standard_Column_Name": "CCCD",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Căn cước công dân"
+            ]
+        },
+        {
+            "Standard_Column_Name": "MaSothueCCGiaiPhap",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Mã số thuế tổ chức cung cấp giải pháp",
+                "Mã số thuế tổ chức cung cấp giải pháp"
+            ]
+        },
+        {
+            "Standard_Column_Name": "MaSoThueTruyenNhan",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Mã số thuế tổ chức truyền nhận",
+                "Mã số thuế tổ chức truyền nhận"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TongTienChuaThue",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "Tổng tiền chưa thuế",
+                "Tổng tiền chưa thuế"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TongTienThue",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "Tổng tiền thuế",
+                "Tổng tiền thuế"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TongTienChietKhau",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "Tổng tiền chiết khấu thương mại",
+                "Tổng tiền chiết khấu thương mại"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TongTienPhi",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "Tổng tiền phí"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TongTienThanhToan",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "Tổng tiền thanh toán",
+                "Tổng tiền thanh toán"
+            ]
+        },
+        {
+            "Standard_Column_Name": "DonViTienTe",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Đơn vị tiền tệ"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TyGia",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "Tỷ giá"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TrangThaiHoaDon",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Trạng thái hóa đơn",
+                "Trạng thái hóa đơn"
+            ]
+        },
+        {
+            "Standard_Column_Name": "KetQuaKiemTra",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Kết quả kiểm tra hóa đơn",
+                "Kết quả kiểm tra hóa đơn"
+            ]
+        }
+    ],
+    "Hoadon_Chitiet": [
+        {
+            "Standard_Column_Name": "MSTNguoiBan",
+            "Data_Type": "nan",
+            "Source_Column_Names": [
+                "Mã số thuế người bán"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TenNguoiBan",
+            "Data_Type": "nan",
+            "Source_Column_Names": [
+                "Tên người bán"
+            ]
+        },
+        {
+            "Standard_Column_Name": "KyHieu",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Ký hiệu mẫu số hóa đơn-ký hiệu hóa đơn",
+                "Ký hiệu HD"
+            ]
+        },
+        {
+            "Standard_Column_Name": "SoHoaDon",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Số hóa đơn",
+                "Số HĐ"
+            ]
+        },
+        {
+            "Standard_Column_Name": "NgayLap",
+            "Data_Type": "datetime",
+            "Source_Column_Names": [
+                "Ngày lập hóa đơn",
+                "Ngày lập"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TenNguoiMua",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Tên người mua",
+                "Tên người mua"
+            ]
+        },
+        {
+            "Standard_Column_Name": "MSTNguoiMua",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "MST người mua",
+                "MST người mua"
+            ]
+        },
+        {
+            "Standard_Column_Name": "Tinhchat",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Tính chất",
+                "Tính chất"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TenHangHoa",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Tên hàng hóa-dịch vụ",
+                "Tên hàng hóa/dịch vụ"
+            ]
+        },
+        {
+            "Standard_Column_Name": "Donvitinh",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Đơn vị tính",
+                "Đơn vị tính"
+            ]
+        },
+        {
+            "Standard_Column_Name": "SoLuong",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "Số lượng",
+                "Số lượng"
+            ]
+        },
+        {
+            "Standard_Column_Name": "DonGia",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "Đơn giá",
+                "Đơn giá"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TongTienChietKhau",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "Số tiền chiết khấu",
+                "Số tiền chiết khấu"
+            ]
+        },
+        {
+            "Standard_Column_Name": "ThanhTien",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "Thành tiền",
+                "Thành tiền"
+            ]
+        },
+        {
+            "Standard_Column_Name": "ThueSuat",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "Thuế suất thuế GTGT (%)",
+                "Thuế suất GTGT(%)"
+            ]
+        },
+        {
+            "Standard_Column_Name": "DonViTienTe",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Đơn vị tiền tệ"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TyGia",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "Tỷ giá"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TrangThaiHoaDon",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Trạng thái hóa đơn",
+                "Trạng thái hóa đơn"
+            ]
+        },
+        {
+            "Standard_Column_Name": "Hoadonlienquan",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Hóa đơn liên quan"
+            ]
+        },
+        {
+            "Standard_Column_Name": "KyHieuHDGoc",
+            "Data_Type": "datetime",
+            "Source_Column_Names": [
+                "Ký hiệu HĐ gốc"
+            ]
+        },
+        {
+            "Standard_Column_Name": "SoHoaDonGoc",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Số HĐ gốc"
+            ]
+        },
+        {
+            "Standard_Column_Name": "Ngayhoadonlienquan",
+            "Data_Type": "nan",
+            "Source_Column_Names": [
+                "Ngày hóa đơn liên quan",
+                "Ngày lập HĐ gốc"
+            ]
+        },
+        {
+            "Standard_Column_Name": "MaSothueCCGiaiPhap",
+            "Data_Type": "nan",
+            "Source_Column_Names": [
+                "Đơn vị cung cấp giải pháp",
+                "Đơn vị CCGP"
+            ]
+        }
+    ],
+    "Hoadon_Muavao_Chitiet": [
+        {
+            "Standard_Column_Name": "KyHieu",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Ký hiệu mẫu số hóa đơn-ký hiệu hóa đơn",
+                "Ký hiệu HD"
+            ]
+        },
+        {
+            "Standard_Column_Name": "SoHoaDon",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Số hóa đơn",
+                "Số HĐ"
+            ]
+        },
+        {
+            "Standard_Column_Name": "NgayLap",
+            "Data_Type": "datetime",
+            "Source_Column_Names": [
+                "Ngày lập hóa đơn",
+                "Ngày lập"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TenNguoiBan",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Tên người bán",
+                "Tên người bán"
+            ]
+        },
+        {
+            "Standard_Column_Name": "MSTNguoiBan",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "MST người bán",
+                "Mã số thuế người bán"
+            ]
+        },
+        {
+            "Standard_Column_Name": "Tinhchat",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Tính chất",
+                "Tính chất"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TenHangHoa",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Tên hàng hóa-dịch vụ",
+                "Tên hàng hóa/dịch vụ"
+            ]
+        },
+        {
+            "Standard_Column_Name": "Donvitinh",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Đơn vị tính",
+                "Đơn vị tính"
+            ]
+        },
+        {
+            "Standard_Column_Name": "SoLuong",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "Số lượng",
+                "Số lượng"
+            ]
+        },
+        {
+            "Standard_Column_Name": "DonGia",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Đơn giá",
+                "Đơn giá"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TongTienChietKhau",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "Số tiền chiết khấu",
+                "Số tiền chiết khấu"
+            ]
+        },
+        {
+            "Standard_Column_Name": "ThanhTien",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "Thành tiền",
+                "Thành tiền"
+            ]
+        },
+        {
+            "Standard_Column_Name": "ThueSuat",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "Thuế suất",
+                "Thuế suất GTGT(%)"
+            ]
+        },
+        {
+            "Standard_Column_Name": "DonViTienTe",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Đơn vị tiền tệ"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TyGia",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "Tỷ giá"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TrangThaiHoaDon",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Trạng thái hóa đơn",
+                "Trạng thái hóa đơn"
+            ]
+        },
+        {
+            "Standard_Column_Name": "Hoadonlienquan",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Hóa đơn liên quan"
+            ]
+        },
+        {
+            "Standard_Column_Name": "KyHieuHDGoc",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Ký hiệu HĐ gốc"
+            ]
+        },
+        {
+            "Standard_Column_Name": "SoHoaDonGoc",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Số HĐ gốc"
+            ]
+        },
+        {
+            "Standard_Column_Name": "Ngayhoadonlienquan",
+            "Data_Type": "datetime",
+            "Source_Column_Names": [
+                "Ngày hóa đơn liên quan",
+                "Ngày lập HĐ gốc"
+            ]
+        },
+        {
+            "Standard_Column_Name": "MaSothueCCGiaiPhap",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Đơn vị cung cấp giải pháp",
+                "Đơn vị CCGP"
+            ]
+        },
+        {
+            "Standard_Column_Name": "MSTNguoiMua",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "MST người mua"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TenNguoiMua",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "Tên người mua"
+            ]
+        }
+    ],
+    "Hoadon_Moi_XML": [
+        {
+            "Standard_Column_Name": "MSTNguoiBan",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "link_nbmst"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TenNguoiBan",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "nbten"
+            ]
+        },
+        {
+            "Standard_Column_Name": "KyHieu",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "link_khhdon"
+            ]
+        },
+        {
+            "Standard_Column_Name": "SoHoaDon",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "link_shdon"
+            ]
+        },
+        {
+            "Standard_Column_Name": "NgayLap",
+            "Data_Type": "datetime",
+            "Source_Column_Names": [
+                "ntao"
+            ]
+        },
+        {
+            "Standard_Column_Name": "STT",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "stt"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TenHangHoa",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "ten"
+            ]
+        },
+        {
+            "Standard_Column_Name": "Donvitinh",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "dvtinh"
+            ]
+        },
+        {
+            "Standard_Column_Name": "SoLuong",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "sluong"
+            ]
+        },
+        {
+            "Standard_Column_Name": "DonGia",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "dgia"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TongTienChietKhau",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "stckhau"
+            ]
+        },
+        {
+            "Standard_Column_Name": "ThanhTien",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "thtien"
+            ]
+        },
+        {
+            "Standard_Column_Name": "ThueSuat",
+            "Data_Type": "numeric",
+            "Source_Column_Names": [
+                "ltsuat"
+            ]
+        },
+        {
+            "Standard_Column_Name": "Tinhchat",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "tchat"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TrangThaiHoaDon",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "tthai"
+            ]
+        },
+        {
+            "Standard_Column_Name": "KyHieuGoc",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "khhdgoc"
+            ]
+        },
+        {
+            "Standard_Column_Name": "SoHoaDonGoc",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "shdgoc"
+            ]
+        },
+        {
+            "Standard_Column_Name": "NgayLapGoc",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "tdlhdgoc"
+            ]
+        },
+        {
+            "Standard_Column_Name": "MSTNguoiMua",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "nmmst"
+            ]
+        },
+        {
+            "Standard_Column_Name": "TenNguoiMua",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "nmten"
+            ]
+        },
+        {
+            "Standard_Column_Name": "MaSothueCCGiaiPhap",
+            "Data_Type": "text",
+            "Source_Column_Names": [
+                "msttcgp"
+            ]
+        }
+    ]
+}
