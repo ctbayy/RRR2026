@@ -2,6 +2,7 @@
 import pandas as pd
 import json
 import os
+import re
 import requests
 from datetime import datetime
 
@@ -43,7 +44,7 @@ class HoaDonRuiRoManager:
             try:
                 with open(self.local_cache_path, 'r', encoding='utf-8') as f:
                     self.risk_data_cache = json.load(f)
-            except:
+            except Exception:
                 pass
 
     def _save_local_cache(self):
@@ -137,7 +138,7 @@ class HoaDonRuiRoManager:
                     res_data = response.json()
                     if res_data.get("status") != "success":
                         return False, "Google Sheets xử lý thất bại."
-                except:
+                except Exception:
                     pass
 
                 self.sync_from_cloud()
@@ -153,58 +154,124 @@ class HoaDonRuiRoManager:
         except Exception as e:
             return False, f"Lỗi đọc file/kết nối: {str(e)}"
 
+    @staticmethod
+    def _tim_cot_mst_nguoi_ban(columns) -> str | None:
+        """Ưu tiên dò chính xác cột MST người bán, tránh bắt nhầm MST người mua hoặc MST tổ chức giải pháp."""
+        uu_tien = [
+            'MSTNguoiBan', 'Mã số thuế người bán', 'MST người bán',
+            'MST người bán/MST người xuất hàng', 'MST_NguoiBan'
+        ]
+        for col_std in uu_tien:
+            if col_std in columns:
+                return col_std
+
+        tu_khoa_loai_tru = ['MUA', 'GIẢI PHÁP', 'GIAIPHAP', 'TRUYỀN NHẬN', 'TRUYENNHAN', 'CCGP']
+        for c in columns:
+            c_upper = str(c).upper()
+            if ('MST' in c_upper or 'MÃ SỐ THUẾ' in c_upper or 'MA SO THUE' in c_upper):
+                if not any(excl in c_upper for excl in tu_khoa_loai_tru):
+                    return c
+
+        return next((c for c in columns if 'MST' in str(c).upper() or 'MÃ SỐ THUẾ' in str(c).upper()), None)
+
+    @staticmethod
+    def _lay_gia_tri_cot(row, danh_sach_cot_ung_vien, xoa_duoi_thap_phan=False) -> str:
+        """Lấy giá trị đầu tiên khác rỗng từ danh sách các tên cột ứng viên (hỗ trợ cả cột chuẩn hóa và cột gốc)."""
+        for c in danh_sach_cot_ung_vien:
+            if c in row.index:
+                val = row[c]
+                if isinstance(val, pd.Series):
+                    val = val.iloc[0]
+                if pd.notna(val):
+                    s = str(val).strip()
+                    if s and s.lower() not in ['nan', 'none', 'null']:
+                        if xoa_duoi_thap_phan:
+                            s = re.sub(r'\.0$', '', s)
+                        return s
+        return ""
+
+    @staticmethod
+    def _chuan_hoa_mst(mst_raw) -> str:
+        """Làm sạch chuỗi MST, loại bỏ đuôi .0 do Excel ép kiểu số và chuẩn hóa dấu gạch ngang."""
+        if pd.isna(mst_raw):
+            return ""
+        s = re.sub(r'\.0$', '', str(mst_raw).strip()).replace(" ", "")
+        if s.lower() in ['nan', 'none', '']:
+            return ""
+        if len(s) == 13 and s.isdigit():
+            return f"{s[:10]}-{s[10:]}"
+        if len(s) == 9 and s.isdigit():
+            return f"0{s}"
+        return s
+
     # =========================================================================
-    # CHỨC NĂNG 2: ĐỐI CHIẾU VỚI BẢNG KÊ 01-1/HT (Phục vụ Worker)
+    # CHỨC NĂNG 2: ĐỐI CHIẾU VỚI BẢNG KÊ 01-1/HT & HÓA ĐƠN MUA VÀO (Phục vụ Worker)
     # =========================================================================
     def check_bang_ke_01_1(self, df_bang_ke: pd.DataFrame) -> tuple[pd.DataFrame, list]:
         warnings = []
         if df_bang_ke is None or df_bang_ke.empty:
             return df_bang_ke, warnings
 
-        # 1. Khởi tạo cột mới với giá trị mặc định là Sạch
+        # 1. Khởi tạo cột mới với giá trị mặc định sạch (không để NaN làm bẩn UI/Excel)
         col_name = 'Đối chiếu HĐ rủi ro'
-        if col_name not in df_bang_ke.columns:
-            df_bang_ke[col_name] = "Không thuộc DS HĐ rủi ro"
-        mst_col = next((c for c in df_bang_ke.columns if 'MST' in str(c).upper() or 'MÃ SỐ THUẾ' in str(c).upper()),
-                       None)
+        df_bang_ke[col_name] = "Không thuộc DS HĐ rủi ro"
+        df_bang_ke['Tổng hợp cảnh báo'] = ""
+        df_bang_ke['Row_Color'] = ""
+
+        mst_col = self._tim_cot_mst_nguoi_ban(df_bang_ke.columns)
         if not mst_col:
-            warnings.append("⏳ BẢNG KÊ 01-1: Không tìm thấy cột Mã số thuế người bán để đối chiếu rủi ro.")
+            warnings.append("⏳ BẢNG KÊ / HÓA ĐƠN MUA VÀO: Không tìm thấy cột Mã số thuế người bán để đối chiếu rủi ro.")
             return df_bang_ke, warnings
+
+        cot_ky_hieu = [
+            'KyHieu', 'KyHieuHoaDon', 'Ký hiệu HD', 'Ký hiệu hóa đơn',
+            'Ký hiệu mẫu số hóa đơn-ký hiệu hóa đơn', 'Ký hiệu'
+        ]
+        cot_so_hd = ['SoHoaDon', 'Số HĐ', 'Số hóa đơn', 'Số']
+        cot_ngay_hd = ['NgayLap', 'Ngày lập', 'Ngày lập hóa đơn', 'Ngày hóa đơn', 'Ngày, tháng, năm']
 
         loi_count = 0
         for idx, row in df_bang_ke.iterrows():
             mst_raw = row[mst_col]
-            # =================================================================
-            # KHẮC PHỤC LỖI AMBIGUOUS DO TRÙNG TÊN CỘT TRÊN RAM
-            # =================================================================
             if isinstance(mst_raw, pd.Series):
                 mst_raw = mst_raw.iloc[0]
-                # =================================================================
-            if pd.isna(mst_raw): continue
 
-            # Quét vào RAM O(1)
-            mst = str(mst_raw).strip()
-            if mst in self.risk_data_cache:
+            mst = self._chuan_hoa_mst(mst_raw)
+            if not mst:
+                continue
+
+            # Tra cứu O(1) trên RAM (hỗ trợ khớp cả MST 13 số chi nhánh về MST 10 số công ty mẹ nếu cần)
+            mst_goc_10 = mst.split('-')[0] if '-' in mst else mst
+            risk_info = self.risk_data_cache.get(mst) or self.risk_data_cache.get(mst_goc_10)
+
+            if risk_info:
                 loi_count += 1
-                risk_info = self.risk_data_cache[mst]
+                dau_hieu = risk_info.get('Dau_hieu', 'Cảnh báo rủi ro hóa đơn').strip()
+                noi_dung = risk_info.get('Noi_dung', '').strip()
 
                 # 2. Gán kết quả nếu phát hiện rủi ro
                 df_bang_ke.at[idx, col_name] = "Thuộc DS hóa đơn rủi ro"
                 df_bang_ke.at[idx, 'Row_Color'] = "red"
-                df_bang_ke.at[idx, 'Tổng hợp cảnh báo'] = "❌ NẰM TRONG DANH MỤC RỦI RO"
+                chi_tiet_cb = f"❌ NẰM TRONG DANH MỤC RỦI RO | Dấu hiệu: {dau_hieu}"
+                if noi_dung:
+                    chi_tiet_cb += f" ({noi_dung})"
+                df_bang_ke.at[idx, 'Tổng hợp cảnh báo'] = chi_tiet_cb
 
-                # 3. Ghi Log để bắn lên Bảng Ma Trận
-                ky_hieu = str(row.get('Ký hiệu', ''))
-                so_hd = str(row.get('Số', ''))
-                ngay_hd = str(row.get('Ngày, tháng, năm', ''))
+                # 3. Ghi Log chuẩn tên cột đã chuẩn hóa để hiển thị đầy đủ Số HĐ, Ký hiệu, Ngày lập
+                ky_hieu = self._lay_gia_tri_cot(row, cot_ky_hieu)
+                so_hd = self._lay_gia_tri_cot(row, cot_so_hd, xoa_duoi_thap_phan=True)
+                ngay_hd = self._lay_gia_tri_cot(row, cot_ngay_hd)
 
                 warnings.append(
-                    f"❌ RỦI RO HÓA ĐƠN ({ky_hieu} - {so_hd} | Ngày {ngay_hd}): Mua của MST {mst}. "
-                    f"Dấu hiệu: {risk_info.get('Dau_hieu', '')}. Văn bản: {risk_info.get('Noi_dung', '')}"
+                    f"❌ RỦI RO HÓA ĐƠN ({ky_hieu} - Số {so_hd} | Ngày {ngay_hd}): Mua của MST {mst}. "
+                    f"Dấu hiệu: {dau_hieu}. Văn bản: {noi_dung}"
                 )
 
         if loi_count == 0:
+            # Nếu 100% hóa đơn sạch, xóa cột kỹ thuật Row_Color để bảng gọn gàng
+            df_bang_ke.drop(columns=['Row_Color'], inplace=True, errors='ignore')
             warnings.append(
-                "✅ KIỂM TRA MST RỦI RO: 100% hóa đơn đầu vào trên Bảng kê 01-1/HT không mua của doanh nghiệp nằm trong Danh sách cảnh báo.")
+                "✅ KIỂM TRA MST RỦI RO: 100% hóa đơn đầu vào không mua của doanh nghiệp nằm trong Danh sách cảnh báo."
+            )
 
         return df_bang_ke, warnings

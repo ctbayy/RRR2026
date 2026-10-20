@@ -7,6 +7,23 @@ import xml.etree.ElementTree as ET
 
 
 class InvoiceProcessor:
+    # Từ khóa nhận diện Hóa đơn rác (Không còn giá trị tính thuế/doanh thu/tồn kho)
+    GARBAGE_KEYWORDS = [
+        'xóa bỏ', 'hủy bỏ', 'hủy', 'bị xóa bỏ', 'bị hủy', 'bị thay thế',
+        'xoa bo', 'huy bo', 'bi xoa bo', 'bi huy', 'bi thay the'
+    ]
+
+    # Từ khóa nhận diện Hóa đơn có trạng thái/tính chất đặc biệt (Cần theo dõi & đối chiếu)
+    SPECIAL_STATUS_KEYWORDS = [
+        'thay thế', 'điều chỉnh', 'bị điều chỉnh', 'chiết khấu', 'trả lại',
+        'thay the', 'dieu chinh', 'bi dieu chinh', 'chiet khau', 'tra lai'
+    ]
+
+    # Từ khóa nhận diện Hóa đơn điều chỉnh giảm (Cần đảm bảo giá trị âm khi cộng dồn)
+    DECREASE_ADJUST_KEYWORDS = [
+        'điều chỉnh giảm', 'dieu chinh giam', 'giảm giá', 'giam gia', 'hàng trả lại', 'trả lại hàng'
+    ]
+
     def __init__(self):
         self.summary_data = {}
         self.special_invoices_df = pd.DataFrame()
@@ -16,9 +33,11 @@ class InvoiceProcessor:
 
     @staticmethod
     def _safe_numeric_convert(val):
-        if pd.isna(val) or val == '': return 0.0
+        if pd.isna(val) or val == '':
+            return 0.0
         s = str(val).strip()
-        if not s: return 0.0
+        if not s:
+            return 0.0
         s = re.sub(r'[^\d.,-]', '', s)
         if s.count(',') > 1:
             s = s.replace(',', '')
@@ -37,11 +56,12 @@ class InvoiceProcessor:
             s = s.replace('.', '')
         try:
             return float(s)
-        except:
+        except Exception:
             return 0.0
 
     def _apply_custom_symbol_logic(self, df):
-        if df is None or df.empty: return df
+        if df is None or df.empty:
+            return df
         required_cols = [
             'Mã số thuế người bán', 'Tên người bán', 'Ký hiệu HD', 'Số HĐ',
             'Ngày lập', 'STT', 'Tên hàng hóa/dịch vụ', 'Đơn vị tính',
@@ -59,8 +79,6 @@ class InvoiceProcessor:
             df.loc[(~is_empty_tax) & mask_starts_with_alpha, 'Ký hiệu HD'] = '1' + ky_hieu
         return df
 
-
-
     def _load_invoice_mapping(self, json_path, sheet_name="Hoadon"):
         try:
             with open(json_path, 'r', encoding='utf-8') as f:
@@ -71,21 +89,26 @@ class InvoiceProcessor:
         ordered_columns, dtype_map, mapping_dict_lower = [], {}, {}
         for item in config_list:
             std_name = item.get("Standard_Column_Name")
-            if not std_name: continue
+            if not std_name:
+                continue
             ordered_columns.append(std_name)
             dtype_map[std_name] = item.get("Data_Type", "text")
             for src in item.get("Source_Column_Names", []):
-                if src: mapping_dict_lower[str(src).strip().lower()] = std_name
+                if src:
+                    mapping_dict_lower[str(src).strip().lower()] = std_name
         return mapping_dict_lower, ordered_columns, dtype_map
 
     def _process_and_standardize_df(self, df, mapping_config):
         mapping_dict_lower, ordered_columns, dtype_map = mapping_config
         df.columns = df.columns.astype(str).str.strip()
-        rename_dict = {col: mapping_dict_lower.get(col.lower(), col) for col in df.columns if
-                       col.lower() in mapping_dict_lower}
+        rename_dict = {
+            col: mapping_dict_lower.get(col.lower(), col)
+            for col in df.columns if col.lower() in mapping_dict_lower
+        }
         df.rename(columns=rename_dict, inplace=True)
         std_cols = [col for col in ordered_columns if col in df.columns]
-        if not std_cols: return None
+        if not std_cols:
+            return None
 
         std_df = df[std_cols].copy()
         for col, dtype in dtype_map.items():
@@ -94,31 +117,19 @@ class InvoiceProcessor:
                     # [VÁ LỖI 1]: Bắt buộc ép kiểu float để hàm sum() hoạt động
                     std_df[col] = std_df[col].apply(self._safe_numeric_convert).astype(float)
                 elif 'MST' in str(col):
-                    std_df[col] = std_df[col].fillna('').astype(str).str.replace(r'\.0$', '', regex=True)
+                    std_df[col] = std_df[col].fillna('').astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
                 elif dtype == 'datetime':
                     # --- [VÁ LỖI 2]: LUỒNG XỬ LÝ NGÀY THÁNG THÔNG MINH ---
-                    # Trám rỗng (fillna) và chặn 'nan' NGAY TỪ ĐẦU trước khi đưa vào luồng băm cắt
                     s = std_df[col].fillna('').astype(str).replace('nan', '')
-
-                    # Giờ thì tha hồ băm cắt, đảm bảo 100% là chuỗi, không bao giờ văng lỗi
                     s = s.str.split(' ').str[0].str.strip()
-
-                    # Tách làm 2 nhóm: Nhóm chuẩn ISO (bắt đầu bằng 4 số YYYY) và Nhóm VN
-                    # [FIX LỖI CRASH]: Thêm na=False để biến NaN thành False, Pandas mới cho phép lọc
                     mask_iso = s.str.match(r'^\d{4}[-/]', na=False)
-
-                    # Tạo series trống chứa kết quả
                     parsed_dates = pd.Series(pd.NaT, index=s.index)
 
-                    # Luồng 1: Xử lý nhóm ISO (CẤM dùng dayfirst để tránh lộn ngày thành tháng)
                     if mask_iso.any():
                         parsed_dates[mask_iso] = pd.to_datetime(s[mask_iso], errors='coerce')
-
-                    # Luồng 2: Xử lý nhóm VN (BẬT dayfirst để ép hiểu Ngày trước Tháng)
                     if (~mask_iso).any():
                         parsed_dates[~mask_iso] = pd.to_datetime(s[~mask_iso], dayfirst=True, errors='coerce')
 
-                    # Ép tất cả về chung 1 format đích DD/MM/YYYY
                     std_df[col] = parsed_dates.dt.strftime('%d/%m/%Y').fillna('')
 
         for col in ordered_columns:
@@ -128,10 +139,20 @@ class InvoiceProcessor:
         if 'NgayLap' in std_df.columns:
             dt_parse = pd.to_datetime(std_df['NgayLap'], format='%d/%m/%Y', errors='coerce')
             std_df['_Thang'] = dt_parse.dt.strftime('%m/%Y')
-            std_df['_Quy'] = 'Q' + dt_parse.dt.quarter.astype(str) + '/' + dt_parse.dt.year.astype(str).str.replace(
-                '.0', '')
+            std_df['_Quy'] = 'Q' + dt_parse.dt.quarter.astype(str) + '/' + dt_parse.dt.year.astype(str).str.replace('.0', '')
             std_df['_Nam'] = dt_parse.dt.year.astype(str).str.replace('.0', '')
         return std_df
+
+    @classmethod
+    def _lay_chuoi_trang_thai_ket_hop(cls, df: pd.DataFrame) -> pd.Series:
+        """Gộp nội dung cột Trạng thái hóa đơn và Tính chất để nhận diện không sót trường hợp đặc biệt."""
+        combined = pd.Series("", index=df.index, dtype=str)
+        for col in df.columns:
+            col_lower = str(col).lower().replace(" ", "").replace("_", "")
+            if any(k in col_lower for k in ["trạngthái", "trangthai", "tínhchất", "tinhchat"]):
+                s_col = df[col].fillna('').astype(str).str.lower().str.strip()
+                combined = combined + " | " + s_col
+        return combined
 
     def _normalize_financial_data(self, df):
         core_cols = ['ThanhTien', 'TongTienChuaThue', 'TongTienThue', 'TongTienThanhToan', 'ThueSuat']
@@ -153,9 +174,59 @@ class InvoiceProcessor:
         df.loc[mask_missing_tax, 'TongTienThue'] = df.loc[mask_missing_tax, 'ThanhTien'] * rates
 
         mask_missing_total = (df['TongTienThanhToan'] == 0)
-        df.loc[mask_missing_total, 'TongTienThanhToan'] = df.loc[mask_missing_total, 'ThanhTien'] + df.loc[
-            mask_missing_total, 'TongTienThue']
+        df.loc[mask_missing_total, 'TongTienThanhToan'] = (
+            df.loc[mask_missing_total, 'ThanhTien'] + df.loc[mask_missing_total, 'TongTienThue']
+        )
+
+        # [VÁ LỖI NGHIỆP VỤ]: Chuẩn hóa dấu âm (-) cho Hóa đơn điều chỉnh giảm nếu file gốc ghi số dương
+        stt_combined = self._lay_chuoi_trang_thai_ket_hop(df)
+        if 'TenHangHoa' in df.columns:
+            stt_combined = stt_combined + " | " + df['TenHangHoa'].fillna('').astype(str).str.lower()
+
+        mask_giam = stt_combined.str.contains('|'.join(self.DECREASE_ADJUST_KEYWORDS), case=False, na=False)
+        if mask_giam.any():
+            money_cols = ['ThanhTien', 'TongTienChuaThue', 'TongTienThue', 'TongTienThanhToan']
+            for m_col in money_cols:
+                if m_col in df.columns:
+                    mask_pos = mask_giam & (df[m_col] > 0)
+                    df.loc[mask_pos, m_col] = -df.loc[mask_pos, m_col]
+            if 'SoLuong' in df.columns:
+                df['SoLuong'] = pd.to_numeric(df['SoLuong'], errors='coerce').fillna(0.0)
+                mask_sl_pos = mask_giam & (df['SoLuong'] > 0)
+                df.loc[mask_sl_pos, 'SoLuong'] = -df.loc[mask_sl_pos, 'SoLuong']
+
         return df
+
+    def _extract_special_and_abnormal_invoices(self, df):
+        """Bóc tách danh sách Hóa đơn có trạng thái đặc biệt và Hóa đơn có thuế suất bất thường."""
+        if df is None or df.empty:
+            self.special_invoices_df = pd.DataFrame()
+            self.abnormal_tax_df = pd.DataFrame()
+            return df
+
+        df_out = df.copy()
+        stt_combined = self._lay_chuoi_trang_thai_ket_hop(df_out)
+
+        mask_garbage = stt_combined.str.contains('|'.join(self.GARBAGE_KEYWORDS), case=False, na=False)
+        mask_special = (~mask_garbage) & stt_combined.str.contains(
+            '|'.join(self.SPECIAL_STATUS_KEYWORDS), case=False, na=False
+        )
+
+        # Gắn cột Phân loại trạng thái để hiển thị trực quan và phục vụ lọc
+        df_out['PhanLoaiTrangThai'] = "Bình thường"
+        df_out.loc[mask_special, 'PhanLoaiTrangThai'] = "⚠️ Đặc biệt (Thay thế / Điều chỉnh)"
+        df_out.loc[mask_garbage, 'PhanLoaiTrangThai'] = "❌ Loại trừ (Hủy / Xóa bỏ / Bị thay thế)"
+
+        self.special_invoices_df = df_out[mask_garbage | mask_special].copy()
+
+        # Kiểm tra thuế suất bất thường (khác 0%, 5%, 8%, 10%)
+        if 'ThueSuat' in df_out.columns:
+            ts_num = pd.to_numeric(df_out['ThueSuat'], errors='coerce').fillna(0.0)
+            ts_pct = ts_num.apply(lambda x: round(x * 100, 2) if 0 < abs(x) < 1 else round(x, 2))
+            mask_abnormal_tax = ~ts_pct.isin([0.0, 5.0, 8.0, 10.0])
+            self.abnormal_tax_df = df_out[mask_abnormal_tax].copy()
+
+        return df_out
 
     def _print_debug_info(self, module_name, df):
         """Hàm Print để nội soi dòng tiền"""
@@ -176,58 +247,54 @@ class InvoiceProcessor:
             dict_chitiet = map_chitiet[0]  # mapping_dict_lower của Mẫu Chi Tiết
             dict_tonghop = map_tonghop[0]  # mapping_dict_lower của Mẫu Tổng Hợp
 
-            # Biến lưu trữ cho Mẫu Chi tiết
             best_score_chitiet = 0
             header_idx_chitiet = 0
             best_df_chitiet = None
 
-            # Biến lưu trữ cho Mẫu Tổng hợp
             best_score_tonghop = 0
             header_idx_tonghop = 0
             best_df_tonghop = None
 
-            # --- HÀM CHẤM ĐIỂM NỘI BỘ (Chạy cho từng Sheet / File) ---
             def _cham_diem(df_temp):
                 nonlocal best_score_chitiet, header_idx_chitiet, best_df_chitiet
                 nonlocal best_score_tonghop, header_idx_tonghop, best_df_tonghop
 
-                if df_temp is None or df_temp.empty: return
+                if df_temp is None or df_temp.empty:
+                    return
 
-                # Quét 20 dòng đầu của DataFrame (Sheet) này để chấm điểm
                 for i in range(min(20, len(df_temp))):
                     row_vals = [str(v).strip().lower() for v in df_temp.iloc[i].values if pd.notna(v)]
 
-                    # Chấm điểm cho Mẫu Chi tiết
                     score_ct = sum(1 for val in row_vals if val in dict_chitiet)
                     if score_ct > best_score_chitiet:
                         best_score_chitiet = score_ct
                         header_idx_chitiet = i
                         best_df_chitiet = df_temp
 
-                    # Chấm điểm cho Mẫu Tổng hợp
                     score_th = sum(1 for val in row_vals if val in dict_tonghop)
                     if score_th > best_score_tonghop:
                         best_score_tonghop = score_th
                         header_idx_tonghop = i
                         best_df_tonghop = df_temp
-            # --------------------------------------------------------
 
             # 1. ĐỌC VÀ CHẤM ĐIỂM NẾU LÀ FILE CSV
             if file_path.lower().endswith('.csv'):
                 for enc in ['utf-8', 'utf-8-sig', 'cp1252', 'latin1']:
                     try:
-                        df_csv = pd.read_csv(file_path, encoding=enc, sep=',', header=None, dtype=str, on_bad_lines='skip')
+                        df_csv = pd.read_csv(
+                            file_path, encoding=enc, sep=',', header=None, dtype=str, on_bad_lines='skip'
+                        )
                         if len(df_csv.columns) > 1:
                             _cham_diem(df_csv)
                             break
-                    except: continue
+                    except Exception:
+                        continue
 
             # 2. ĐỌC VÀ CHẤM ĐIỂM NẾU LÀ FILE EXCEL (QUÉT TẤT CẢ CÁC SHEET)
             elif file_path.lower().endswith(('.xlsx', '.xls')):
                 loai_dong_co = 'xlrd' if file_path.lower().endswith('.xls') else 'openpyxl'
                 xls = pd.ExcelFile(file_path, engine=loai_dong_co)
 
-                # Lặp qua từng Sheet, Sheet nào trống bỏ qua, có dữ liệu thì quăng vào chấm điểm
                 for sheet_name in xls.sheet_names:
                     df_sheet = pd.read_excel(xls, sheet_name=sheet_name, header=None, dtype=str)
                     _cham_diem(df_sheet)
@@ -259,10 +326,9 @@ class InvoiceProcessor:
         except Exception as e:
             self.error_messages.append(f"Lỗi quét thông minh: {e}")
             return None
+
     def process_excel_csv_invoices(self, file_path, json_path, is_mua_vao=False):
         """Hàm công khai xử lý Hóa đơn - Tự động nhận diện Form"""
-
-        # 1. Tải cả 2 tấm bản đồ lên
         sheet_chitiet = "Hoadon_Muavao_Chitiet" if is_mua_vao else "Hoadon_Chitiet"
         sheet_tonghop = "Hoadon"
 
@@ -273,61 +339,93 @@ class InvoiceProcessor:
             self.logger.error(f"Lỗi tải file Map JSON: {e}")
             return None
 
-        # 2. Cho 2 bản đồ đi quét và so găng
         result = self._read_file_smart_auto_detect(file_path, map_chitiet, map_tonghop)
-
         if not result:
             return None
 
         df_raw, best_mapping_config, map_name = result
 
-        # 3. CHUẨN HÓA CỘT DỰA TRÊN BẢN ĐỒ CHIẾN THẮNG
         df_std = self._process_and_standardize_df(df_raw, best_mapping_config)
+        if df_std is None:
+            return None
 
-        if df_std is None: return None
-
-
-        # 5. ĐỒNG BỘ TIỀN TỆ
         df_std = self._normalize_financial_data(df_std)
+        df_std = self._extract_special_and_abnormal_invoices(df_std)
 
-        # [DEBUG] - In ra màn hình để mày biết file vừa nạp ăn theo Mẫu nào
         print(f"\n✅ ĐÃ TỰ ĐỘNG NHẬN DIỆN MẪU BẢNG KÊ: {map_name}")
         self._print_debug_info(f"EXCEL/CSV - {os.path.basename(file_path)}", df_std)
 
         return df_std
 
-    @staticmethod
-    def loc_hoa_don_tinh_toan(df):
+    @classmethod
+    def loc_hoa_don_trang_thai_dac_biet(cls, df: pd.DataFrame, loai_hd: str = "") -> pd.DataFrame:
         """
-        [HÀM DÀNH RIÊNG CHO ENGINE TÍNH TOÁN]
-        Lọc bỏ hóa đơn rác (Hủy, Xóa bỏ, Thay thế) trước khi cộng dồn số liệu.
+        Trích xuất danh sách các Hóa đơn có trạng thái / tính chất đặc biệt:
+        - Hóa đơn Xóa bỏ / Hủy / Bị thay thế (Đã loại khỏi tính toán)
+        - Hóa đơn Thay thế / Điều chỉnh / Bị điều chỉnh (Cần rà soát cặp hóa đơn gốc - điều chỉnh/thay thế)
         """
-        import pandas as pd
+        if df is None or isinstance(df, dict) or not isinstance(df, pd.DataFrame) or df.empty:
+            return pd.DataFrame()
 
-        # BỌC THÉP CHỐNG CRASH
+        df_check = df.copy()
+        stt_combined = cls._lay_chuoi_trang_thai_ket_hop(df_check)
+
+        mask_garbage = stt_combined.str.contains('|'.join(cls.GARBAGE_KEYWORDS), case=False, na=False)
+        mask_special = (~mask_garbage) & stt_combined.str.contains(
+            '|'.join(cls.SPECIAL_STATUS_KEYWORDS), case=False, na=False
+        )
+
+        mask_all_special = mask_garbage | mask_special
+        if not mask_all_special.any():
+            return pd.DataFrame()
+
+        df_res = df_check[mask_all_special].copy()
+        if loai_hd:
+            df_res.insert(0, 'Phân hệ HĐ', loai_hd)
+
+        df_res['Nhóm Trạng Thái Đặc Biệt'] = ""
+        df_res.loc[mask_special, 'Nhóm Trạng Thái Đặc Biệt'] = "⚠️ Thay thế / Điều chỉnh (Cần đối chiếu HĐ gốc)"
+        df_res.loc[mask_garbage, 'Nhóm Trạng Thái Đặc Biệt'] = "❌ Hủy / Xóa bỏ / Bị thay thế (Đã loại khi tính tổng)"
+
+        return df_res
+
+    @classmethod
+    def loc_hoa_don_tinh_toan(cls, df):
+        """
+        [HÀM DÀNH RIÊNG CHO ENGINE TÍNH TOÁN, ĐỐI CHIẾU DOANH SỐ & TỒN KHO]
+        1. Lọc bỏ hóa đơn rác (Hủy, Xóa bỏ, Bị xóa bỏ, Bị thay thế) trên cả cột Trạng thái và Tính chất.
+        2. Đảm bảo hóa đơn điều chỉnh giảm mang dấu âm (-) trước khi cộng dồn số liệu.
+        """
         if df is None or isinstance(df, dict) or (isinstance(df, pd.DataFrame) and df.empty):
             return df
 
         df_calc = df.copy()
 
-        # 1. Dò tìm tên cột Trạng thái một cách linh hoạt (Cân mọi loại tên có dấu/không dấu)
-        col_trang_thai = None
-        for col in df_calc.columns:
-            col_lower = str(col).lower().replace(" ", "").replace("_", "")
-            if "trạngthái" in col_lower or "trangthai" in col_lower:
-                col_trang_thai = col
-                break
+        # 1. Quét trên cả cột Trạng thái hóa đơn và Tính chất
+        stt_combined = cls._lay_chuoi_trang_thai_ket_hop(df_calc)
 
-        # 2. Thực hiện bóp chết hóa đơn rác
-        if col_trang_thai:
-            stt_col = df_calc[col_trang_thai].astype(str).str.lower().str.strip()
+        # Tạo mặt nạ lọc rác
+        mask_garbage = stt_combined.str.contains('|'.join(cls.GARBAGE_KEYWORDS), case=False, na=False)
+        df_calc = df_calc[~mask_garbage].copy()
 
-            GARBAGE_KEYWORDS = ['xóa bỏ', 'hủy bỏ', 'hủy', 'bị xóa bỏ', 'bị thay thế']
+        if df_calc.empty:
+            return df_calc
 
-            # Tạo mặt nạ lọc rác
-            mask_garbage = stt_col.str.contains('|'.join(GARBAGE_KEYWORDS), case=False, na=False)
+        # 2. Đảm bảo các dòng điều chỉnh giảm mang giá trị âm khi tính tổng
+        stt_valid = cls._lay_chuoi_trang_thai_ket_hop(df_calc)
+        if 'TenHangHoa' in df_calc.columns:
+            stt_valid = stt_valid + " | " + df_calc['TenHangHoa'].fillna('').astype(str).str.lower()
 
-            # Chỉ giữ lại những dòng KHÔNG bị dính mặt nạ rác (dấu ~)
-            df_calc = df_calc[~mask_garbage]
+        mask_giam = stt_valid.str.contains('|'.join(cls.DECREASE_ADJUST_KEYWORDS), case=False, na=False)
+        if mask_giam.any():
+            for m_col in ['ThanhTien', 'TongTienChuaThue', 'TongTienThue', 'TongTienThanhToan']:
+                if m_col in df_calc.columns:
+                    df_calc[m_col] = pd.to_numeric(df_calc[m_col], errors='coerce').fillna(0.0)
+                    mask_pos = mask_giam & (df_calc[m_col] > 0)
+                    df_calc.loc[mask_pos, m_col] = -df_calc.loc[mask_pos, m_col]
+            if 'SoLuong' in df_calc.columns:
+                df_calc['SoLuong'] = pd.to_numeric(df_calc['SoLuong'], errors='coerce').fillna(0.0)
+                mask_sl_pos = mask_giam & (df_calc['SoLuong'] > 0)
+                df_calc.loc[mask_sl_pos, 'SoLuong'] = -df_calc.loc[mask_sl_pos, 'SoLuong']
 
         return df_calc

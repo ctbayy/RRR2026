@@ -1,8 +1,8 @@
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                                QPushButton, QStackedWidget, QLabel, QSplitter, QFrame,
                                QListWidget, QTabWidget, QTableWidget, QTableWidgetItem, QComboBox, QCheckBox, QTextEdit,
-                               QHeaderView,
-                               QTabBar, QFileDialog, QMessageBox,QSplitter)
+                               QHeaderView, QProgressBar,
+                               QTabBar, QFileDialog, QMessageBox, QSplitter)
 from PySide6.QtCore import Qt, QSize, QThread, Signal
 import qtawesome as qta
 
@@ -150,16 +150,28 @@ class GiaoDienChinh(QMainWindow):
         lbl_avt.setPixmap(qta.icon('fa5s.user-shield', color='#2563EB').pixmap(14, 14))
         lbl_avt.setStyleSheet("background: transparent; border: none;")
 
-        lbl_user_txt = QLabel("Chuyên viên Thuế")
-        lbl_user_txt.setStyleSheet("color: #334155; font-size: 11px; font-weight: 700; background: transparent; border: none;")
+        self.lbl_user_txt = QLabel("Chuyên viên Thuế")
+        self.lbl_user_txt.setStyleSheet("color: #334155; font-size: 11px; font-weight: 700; background: transparent; border: none;")
 
         lbl_dot = QLabel("●")
         lbl_dot.setStyleSheet("color: #10B981; font-size: 10px; background: transparent; border: none;")
 
         layout_us.addWidget(lbl_avt)
-        layout_us.addWidget(lbl_user_txt)
+        layout_us.addWidget(self.lbl_user_txt)
         layout_us.addWidget(lbl_dot)
         layout_us.addStretch()
+
+        self.btn_dang_xuat = QPushButton()
+        self.btn_dang_xuat.setIcon(qta.icon('fa5s.sign-out-alt', color='#94A3B8'))
+        self.btn_dang_xuat.setToolTip("Đăng xuất tài khoản khỏi máy tính này")
+        self.btn_dang_xuat.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_dang_xuat.setStyleSheet("""
+            QPushButton { background: transparent; border: none; padding: 2px 4px; }
+            QPushButton:hover { background-color: #FEE2E2; border-radius: 4px; }
+        """)
+        self.btn_dang_xuat.clicked.connect(self.xu_ly_dang_xuat)
+        layout_us.addWidget(self.btn_dang_xuat)
+
         layout_trai.addWidget(self.khung_user_status)
 
         self.btn_gop_y = QPushButton("  Góp ý / Báo lỗi")
@@ -251,8 +263,8 @@ class GiaoDienChinh(QMainWindow):
 
         header_layout.addStretch()
 
-        pill_status = QLabel("● Sẵn sàng phân tích")
-        pill_status.setStyleSheet("""
+        self.pill_status = QLabel("● Sẵn sàng phân tích")
+        self.pill_status.setStyleSheet("""
             background-color: rgba(16, 185, 129, 0.15); 
             color: #34D399; 
             font-size: 11px; 
@@ -261,7 +273,7 @@ class GiaoDienChinh(QMainWindow):
             border-radius: 12px;
             border: 1px solid rgba(52, 211, 153, 0.3);
         """)
-        header_layout.addWidget(pill_status)
+        header_layout.addWidget(self.pill_status)
 
         lbl_version = QLabel("PRO 4.2")
         lbl_version.setStyleSheet("""
@@ -618,6 +630,72 @@ class GiaoDienChinh(QMainWindow):
         lbl_log.setStyleSheet("font-weight: 700; color: #475569; font-size: 13px;")
         layout_log.addWidget(lbl_log)
 
+        # --- KHUNG TIẾN TRÌNH XỬ LÝ TRỰC QUAN (PROGRESS PANEL) ---
+        self.khung_tien_trinh = QFrame()
+        self.khung_tien_trinh.setStyleSheet("""
+            QFrame {
+                background-color: #FFFFFF;
+                border: 1px solid #E2E8F0;
+                border-radius: 8px;
+            }
+        """)
+        layout_tien_trinh = QVBoxLayout(self.khung_tien_trinh)
+        layout_tien_trinh.setContentsMargins(12, 10, 12, 10)
+        layout_tien_trinh.setSpacing(6)
+
+        # Hàng 1: Icon + Tên bước + Badge + Phần trăm
+        hang_tt_top = QHBoxLayout()
+        hang_tt_top.setSpacing(8)
+
+        self.lbl_icon_tien_trinh = QLabel()
+        self.lbl_icon_tien_trinh.setPixmap(qta.icon('fa5s.hourglass-half', color='#2563EB').pixmap(16, 16))
+        hang_tt_top.addWidget(self.lbl_icon_tien_trinh)
+
+        self.lbl_buoc_tien_trinh = QLabel("Sẵn sàng phân tích")
+        self.lbl_buoc_tien_trinh.setStyleSheet("font-weight: 700; font-size: 12px; color: #1E293B;")
+        hang_tt_top.addWidget(self.lbl_buoc_tien_trinh)
+
+        hang_tt_top.addStretch()
+
+        self.badge_buoc = QLabel("Chờ lệnh")
+        self.badge_buoc.setStyleSheet("""
+            background-color: #F1F5F9; color: #475569; 
+            font-size: 11px; font-weight: 700; 
+            padding: 2px 8px; border-radius: 6px; border: 1px solid #CBD5E1;
+        """)
+        hang_tt_top.addWidget(self.badge_buoc)
+
+        self.lbl_phan_tram = QLabel("0%")
+        self.lbl_phan_tram.setStyleSheet("font-weight: 800; font-size: 13px; color: #2563EB; min-width: 42px; text-align: right;")
+        hang_tt_top.addWidget(self.lbl_phan_tram)
+        layout_tien_trinh.addLayout(hang_tt_top)
+
+        # Hàng 2: Thanh tiến trình ProgressBar
+        self.thanh_tien_trinh = QProgressBar()
+        self.thanh_tien_trinh.setRange(0, 100)
+        self.thanh_tien_trinh.setValue(0)
+        self.thanh_tien_trinh.setTextVisible(False)
+        self.thanh_tien_trinh.setFixedHeight(8)
+        self.thanh_tien_trinh.setStyleSheet("""
+            QProgressBar {
+                background-color: #E2E8F0;
+                border-radius: 4px;
+                border: none;
+            }
+            QProgressBar::chunk {
+                background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #2563EB, stop:0.7 #3B82F6, stop:1 #10B981);
+                border-radius: 4px;
+            }
+        """)
+        layout_tien_trinh.addWidget(self.thanh_tien_trinh)
+
+        # Hàng 3: Chi tiết tác vụ đang diễn ra
+        self.lbl_chi_tiet_tien_trinh = QLabel("Chưa có tác vụ nào đang chạy. Nhấn 'PHÂN TÍCH HỒ SƠ TOÀN DIỆN' để bắt đầu.")
+        self.lbl_chi_tiet_tien_trinh.setStyleSheet("font-size: 11px; color: #64748B;")
+        layout_tien_trinh.addWidget(self.lbl_chi_tiet_tien_trinh)
+
+        layout_log.addWidget(self.khung_tien_trinh)
+
         self.text_log_xu_ly = QTextEdit()
         self.text_log_xu_ly.setReadOnly(True)
         self.text_log_xu_ly.setStyleSheet("""
@@ -743,11 +821,20 @@ class GiaoDienChinh(QMainWindow):
 
 
         # ==============================================================
-        # ---> BỔ SUNG NÚT NÀY VÀO <---
+        # CÁC NÚT SOẠN THẢO VĂN BẢN & XUẤT WORD
+        # ==============================================================
+        self.btn_tao_thong_bao = QPushButton(" Tạo Thông Báo (Word)")
+        self.btn_tao_thong_bao.setIcon(qta.icon('fa5s.bullhorn', color='white'))
+        self.btn_tao_thong_bao.setStyleSheet(
+            "background-color: #D97706; color: white; font-weight: bold; padding: 8px 16px; border-radius: 6px; font-size: 13px; margin-right: 8px;")
+        self.btn_tao_thong_bao.setToolTip("Tùy biến nội dung và tạo Thông báo giải trình gửi Doanh nghiệp")
+        khung_tool_bar.addWidget(self.btn_tao_thong_bao)
+
         self.btn_tao_phieu = QPushButton(" Tạo Phiếu Nhận Xét (Word)")
         self.btn_tao_phieu.setIcon(qta.icon('fa5s.file-word', color='white'))
         self.btn_tao_phieu.setStyleSheet(
-            "background-color: #2563EB; color: white; font-weight: bold; padding: 8px 18px; border-radius: 6px; font-size: 13px; margin-right: 10px;")
+            "background-color: #2563EB; color: white; font-weight: bold; padding: 8px 16px; border-radius: 6px; font-size: 13px; margin-right: 10px;")
+        self.btn_tao_phieu.setToolTip("Tùy biến nội dung và tạo Phiếu nhận xét hồ sơ khai thuế hoặc Tờ trình")
         khung_tool_bar.addWidget(self.btn_tao_phieu)
         self.btn_xuat_excel = QPushButton(" Kết xuất Excel")
         self.btn_xuat_excel.setIcon(qta.icon('fa5s.file-excel', color='white'))
@@ -794,6 +881,22 @@ class GiaoDienChinh(QMainWindow):
     def mo_dialog_gop_y(self):
         dialog = DialogGopY(self)
         dialog.exec()
+
+    def xu_ly_dang_xuat(self):
+        from PySide6.QtWidgets import QMessageBox
+        tra_loi = QMessageBox.question(
+            self,
+            "Xác nhận đăng xuất",
+            "Bạn có chắc chắn muốn đăng xuất tài khoản khỏi máy tính này không?\n\n"
+            "Sau khi đăng xuất, bạn sẽ cần đăng nhập lại tài khoản ở lần mở ứng dụng tiếp theo.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if tra_loi == QMessageBox.StandardButton.Yes:
+            from module_bao_mat.license_manager import LicenseManager
+            LicenseManager.revoke_license()
+            QMessageBox.information(self, "Đã đăng xuất", "Đã đăng xuất và xóa phiên bản quyền trên máy này thành công.\nỨng dụng sẽ tự động đóng lại.")
+            self.close()
 
     def thu_gon_menu(self):
         if self.btn_tab_chuan_bi.text() != "":
@@ -870,3 +973,57 @@ class GiaoDienChinh(QMainWindow):
             # Cảnh báo mờ đi
             self.lbl_tt200_note.setStyleSheet("font-size: 11px; color: #9CA3AF; font-style: italic;")
             self.lbl_tt200_note.setText("Tải lên Bảng CĐSPS (nếu có)")
+
+    def cap_nhat_tien_trinh(self, phan_tram: int, buoc: str = "", chi_tiet: str = "", badge: str = "Đang chạy"):
+        """Cập nhật trực quan thanh tiến trình, icon, % và mô tả tác vụ"""
+        phan_tram = max(0, min(100, int(phan_tram)))
+        if hasattr(self, 'thanh_tien_trinh'):
+            self.thanh_tien_trinh.setValue(phan_tram)
+        if hasattr(self, 'lbl_phan_tram'):
+            self.lbl_phan_tram.setText(f"{phan_tram}%")
+            if phan_tram >= 100:
+                self.lbl_phan_tram.setStyleSheet("font-weight: 800; font-size: 13px; color: #10B981; min-width: 42px; text-align: right;")
+            else:
+                self.lbl_phan_tram.setStyleSheet("font-weight: 800; font-size: 13px; color: #2563EB; min-width: 42px; text-align: right;")
+
+        if buoc and hasattr(self, 'lbl_buoc_tien_trinh'):
+            self.lbl_buoc_tien_trinh.setText(buoc)
+        if chi_tiet and hasattr(self, 'lbl_chi_tiet_tien_trinh'):
+            self.lbl_chi_tiet_tien_trinh.setText(chi_tiet)
+
+        if hasattr(self, 'badge_buoc'):
+            if badge:
+                self.badge_buoc.setText(badge)
+            if phan_tram >= 100 or badge in ["Hoàn tất", "Xong"]:
+                self.badge_buoc.setText("Hoàn tất" if not badge or badge == "Đang chạy" else badge)
+                self.badge_buoc.setStyleSheet("""
+                    background-color: #ECFDF5; color: #047857; 
+                    font-size: 11px; font-weight: 700; 
+                    padding: 2px 8px; border-radius: 6px; border: 1px solid #A7F3D0;
+                """)
+                if hasattr(self, 'lbl_icon_tien_trinh'):
+                    self.lbl_icon_tien_trinh.setPixmap(qta.icon('fa5s.check-circle', color='#10B981').pixmap(16, 16))
+            elif phan_tram == 0 or badge in ["Chờ lệnh", "Sẵn sàng"]:
+                self.badge_buoc.setStyleSheet("""
+                    background-color: #F1F5F9; color: #475569; 
+                    font-size: 11px; font-weight: 700; 
+                    padding: 2px 8px; border-radius: 6px; border: 1px solid #CBD5E1;
+                """)
+                if hasattr(self, 'lbl_icon_tien_trinh'):
+                    self.lbl_icon_tien_trinh.setPixmap(qta.icon('fa5s.hourglass-half', color='#2563EB').pixmap(16, 16))
+            elif badge in ["Lỗi", "Thất bại"]:
+                self.badge_buoc.setStyleSheet("""
+                    background-color: #FEF2F2; color: #DC2626; 
+                    font-size: 11px; font-weight: 700; 
+                    padding: 2px 8px; border-radius: 6px; border: 1px solid #FECACA;
+                """)
+                if hasattr(self, 'lbl_icon_tien_trinh'):
+                    self.lbl_icon_tien_trinh.setPixmap(qta.icon('fa5s.exclamation-triangle', color='#DC2626').pixmap(16, 16))
+            else:
+                self.badge_buoc.setStyleSheet("""
+                    background-color: #EFF6FF; color: #1D4ED8; 
+                    font-size: 11px; font-weight: 700; 
+                    padding: 2px 8px; border-radius: 6px; border: 1px solid #BFDBFE;
+                """)
+                if hasattr(self, 'lbl_icon_tien_trinh'):
+                    self.lbl_icon_tien_trinh.setPixmap(qta.icon('fa5s.sync-alt', color='#2563EB').pixmap(16, 16))

@@ -1,9 +1,12 @@
 import os
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QTextBrowser, QListWidget, QSplitter
-from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QTextBrowser, QListWidget, QSplitter, QPushButton, QLabel, QFrame
+from PySide6.QtCore import Qt, Signal
+import qtawesome as qta
 
 
 class WidgetHuongDanSuDung(QWidget):
+    yeu_cau_chay_tour = Signal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -22,16 +25,42 @@ class WidgetHuongDanSuDung(QWidget):
         # Dùng QSplitter để có thể kéo thả độ rộng giữa Menu và Nội dung
         bo_chia = QSplitter(Qt.Horizontal)
 
-        # 1. MENU DANH MỤC BÊN TRÁI
+        # 1. CỘT ĐIỀU HƯỚNG VÀ TOUR BÊN TRÁI
+        khung_trai_docs = QFrame()
+        layout_trai_docs = QVBoxLayout(khung_trai_docs)
+        layout_trai_docs.setContentsMargins(0, 0, 0, 0)
+        layout_trai_docs.setSpacing(8)
+
+        self.btn_chay_tour = QPushButton("  Khởi động Tour Hướng dẫn")
+        self.btn_chay_tour.setIcon(qta.icon('fa5s.play-circle', color='white'))
+        self.btn_chay_tour.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_chay_tour.setToolTip("Chạy hướng dẫn tương tác trực tiếp từng bước trên màn hình làm việc")
+        self.btn_chay_tour.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2563EB, stop:1 #4F46E5);
+                color: white; font-weight: bold; font-size: 13px;
+                padding: 11px 14px; border-radius: 7px; border: none; text-align: left;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #1D4ED8, stop:1 #4338CA);
+            }
+        """)
+        self.btn_chay_tour.clicked.connect(self.yeu_cau_chay_tour.emit)
+        layout_trai_docs.addWidget(self.btn_chay_tour)
+
+        lbl_muc_luc = QLabel("DANH MỤC HƯỚNG DẪN")
+        lbl_muc_luc.setStyleSheet("font-size: 10px; font-weight: bold; color: #94A3B8; padding-top: 6px; letter-spacing: 0.5px;")
+        layout_trai_docs.addWidget(lbl_muc_luc)
+
         self.menu_docs = QListWidget()
         self.menu_docs.setMinimumWidth(220)
         self.menu_docs.setMaximumWidth(300)
         self.menu_docs.setStyleSheet("""
             QListWidget {
                 background-color: #F8FAFC; border: 1px solid #E5E7EB; border-radius: 8px;
-                outline: none; padding: 10px 5px; font-size: 14px; font-weight: 500; color: #334155;
+                outline: none; padding: 6px 4px; font-size: 13.5px; font-weight: 500; color: #334155;
             }
-            QListWidget::item { padding: 12px 10px; border-radius: 6px; margin-bottom: 2px; }
+            QListWidget::item { padding: 11px 10px; border-radius: 6px; margin-bottom: 2px; }
             QListWidget::item:hover { background-color: #E2E8F0; }
             QListWidget::item:selected { background-color: #DBEAFE; color: #1D4ED8; font-weight: bold; border-left: 4px solid #2563EB; }
         """)
@@ -47,6 +76,7 @@ class WidgetHuongDanSuDung(QWidget):
         ]
         self.menu_docs.addItems(danh_muc)
         self.menu_docs.setCurrentRow(0)
+        layout_trai_docs.addWidget(self.menu_docs)
 
         # 2. KHUNG NỘI DUNG BÊN PHẢI
         self.khung_hien_thi = QTextBrowser()
@@ -64,11 +94,12 @@ class WidgetHuongDanSuDung(QWidget):
             b { color: #111827; }
             .highlight { background-color: #FEF3C7; padding: 2px 6px; border-radius: 4px; color: #B45309; font-weight: bold; }
             .box-note { background-color: #FEF2F2; border-left: 4px solid #EF4444; padding: 12px; margin-top: 15px; }
+            .box-tour { background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 14px; margin-bottom: 20px; border-radius: 4px; }
         """)
 
-        bo_chia.addWidget(self.menu_docs)
+        bo_chia.addWidget(khung_trai_docs)
         bo_chia.addWidget(self.khung_hien_thi)
-        bo_chia.setSizes([250, 950])
+        bo_chia.setSizes([260, 940])
         layout_chinh.addWidget(bo_chia)
 
         # Kết nối sự kiện khi bấm menu thì đổi nội dung
@@ -80,6 +111,10 @@ class WidgetHuongDanSuDung(QWidget):
             # 0. TỔNG QUAN
             f"""
             <h2>0. SƠ ĐỒ LUỒNG THAO TÁC (WORKFLOW)</h2>
+            <div class="box-tour">
+                <b style="color: #1E40AF; font-size: 15px;">🎬 Bạn là người dùng mới?</b><br>
+                <span>Nhấn nút <b>"Khởi động Tour Hướng dẫn"</b> ở menu bên trái hoặc phím tắt để ứng dụng tự động mở chế độ chỉ dẫn tương tác trực tiếp (Walkthrough) từng nút bấm trên giao diện.</span>
+            </div>
             <p>Hệ thống được thiết kế theo quy trình 4 bước tự động hóa khép kín:</p>
             <ul>
                 <li><b>BƯỚC 1: Chuẩn bị dữ liệu:</b> Upload Tờ khai XML, Hóa đơn mua vào/bán ra (Excel) và Bảng CĐSPS theo mẫu excel (đối với TT200/TT99).</li>

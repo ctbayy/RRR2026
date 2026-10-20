@@ -13,6 +13,14 @@ from datetime import datetime, timedelta
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes, serialization
 
+# Hỗ trợ in tiếng Việt có dấu và icon trên mọi terminal Windows (cmd, powershell)
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 
 PRIVATE_KEY_PATH = "Data/admin_private_key.pem"
 

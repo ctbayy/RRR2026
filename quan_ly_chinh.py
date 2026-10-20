@@ -108,7 +108,9 @@ class UngDungRRR:
                 self.giao_dien.btn_tao_cong_thuc.clicked.connect(self.mo_trinh_tao_cong_thuc)
                 self.giao_dien.btn_lam_moi_du_lieu.clicked.connect(self.lam_moi_phien_lam_viec)
                 # Thêm dòng này vào cuối hàm ket_noi_su_kien
-                self.giao_dien.btn_tao_phieu.clicked.connect(self.mo_trinh_soan_thao_phieu)
+                if hasattr(self.giao_dien, 'btn_tao_thong_bao'):
+                    self.giao_dien.btn_tao_thong_bao.clicked.connect(lambda: self.mo_trinh_soan_thao_phieu(loai_mac_dinh=1))
+                self.giao_dien.btn_tao_phieu.clicked.connect(lambda: self.mo_trinh_soan_thao_phieu(loai_mac_dinh=0))
                 # ---> BỔ SUNG DÒNG NÀY ĐỂ BẮT SỰ KIỆN TÍCH CHỌN CHECKBOX TMS <---
                 self.giao_dien.chk_tms.toggled.connect(self.hien_thi_canh_bao_tms)
                 # ---> BỔ SUNG 2 SỰ KIỆN CHO NÚT TẢI/NẠP EXCEL TT200 <---
@@ -122,6 +124,8 @@ class UngDungRRR:
                 self.giao_dien.cb_nam_kq.currentTextChanged.connect(self.chuyen_view_ket_qua_nam)
                 if hasattr(self.giao_dien, 'drop_zone'):
                     self.giao_dien.drop_zone.files_dropped.connect(self.xu_ly_keo_tha_files)
+                if hasattr(self.giao_dien, 'trang_huong_dan') and hasattr(self.giao_dien.trang_huong_dan, 'yeu_cau_chay_tour'):
+                    self.giao_dien.trang_huong_dan.yeu_cau_chay_tour.connect(self.khoi_dong_tour_huong_dan)
             def mo_kho_file_mau(self):
                 dialog = DialogKhoFileMau(self.giao_dien)
                 dialog.exec()
@@ -304,8 +308,152 @@ class UngDungRRR:
                 # BÍ KÍP CHỐNG ĐƠ: Ép Giao diện (UI) cập nhật và vẽ lại ngay lập tức
                 QApplication.processEvents()
 
+            def _to_mau_bang_hoa_don(self, df_hd, bang_widget):
+                """Tô màu cảnh báo trực tiếp trên bảng Hóa đơn cho HĐ Rủi ro, HĐ Trạng thái đặc biệt và TMS bất thường"""
+                import pandas as pd
+                from PySide6.QtGui import QColor
+                if not isinstance(df_hd, pd.DataFrame) or df_hd.empty or bang_widget is None:
+                    return
+
+                tu_khoa_tms_do = ["không hoạt động tại địa chỉ", "bỏ địa chỉ", "chờ xác minh", "mất tích"]
+                tu_khoa_tms_vang = ["ngừng hoạt động", "tạm nghỉ", "tạm ngừng", "chấm dứt"]
+                tu_khoa_hd_do = ["hủy", "xóa bỏ", "bị xóa bỏ", "bị hủy", "bị thay thế"]
+                tu_khoa_hd_vang = ["thay thế", "điều chỉnh", "bị điều chỉnh", "chiết khấu", "trả lại"]
+
+                idx_tms = df_hd.columns.get_loc('TrangThaiTMS') if 'TrangThaiTMS' in df_hd.columns else -1
+                idx_rr = df_hd.columns.get_loc('Đối chiếu HĐ rủi ro') if 'Đối chiếu HĐ rủi ro' in df_hd.columns else -1
+                cot_tt_hd = [
+                    df_hd.columns.get_loc(c)
+                    for c in ['TrangThaiHoaDon', 'Trạng thái hóa đơn', 'Tinhchat', 'Tính chất', 'Nhóm Trạng Thái Đặc Biệt']
+                    if c in df_hd.columns
+                ]
+
+                so_dong = min(bang_widget.rowCount(), len(df_hd))
+                for row in range(so_dong):
+                    tt_tms = str(df_hd.iloc[row, idx_tms]).lower() if idx_tms != -1 else ""
+                    tt_rr = str(df_hd.iloc[row, idx_rr]).lower() if idx_rr != -1 else ""
+                    tt_hd_goc = " | ".join(str(df_hd.iloc[row, c_i]).lower() for c_i in cot_tt_hd) if cot_tt_hd else ""
+
+                    is_do = (
+                        "thuộc ds hóa đơn rủi ro" in tt_rr
+                        or any(k in tt_tms for k in tu_khoa_tms_do)
+                        or any(k in tt_hd_goc for k in tu_khoa_hd_do)
+                    )
+                    is_vang = (not is_do) and (
+                        any(k in tt_tms for k in tu_khoa_tms_vang)
+                        or any(k in tt_hd_goc for k in tu_khoa_hd_vang)
+                    )
+
+                    if is_do or is_vang:
+                        bg_color = QColor("#fee2e2") if is_do else QColor("#fef08a")
+                        for col in range(bang_widget.columnCount()):
+                            item = bang_widget.item(row, col)
+                            if item:
+                                item.setBackground(bg_color)
+
+            def _dong_bo_canh_bao_hoa_don(self, hien_popup_rui_ro=False):
+                """Đồng bộ quét Hóa đơn Rủi ro và bóc tách Hóa đơn có Trạng thái đặc biệt (Dùng chung cho cả Nút bấm & Kéo thả)"""
+                import pandas as pd
+                from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QMessageBox
+                from module_doc_hoadon.hoadon_ruiro import HoaDonRuiRoManager
+                from module_doc_hoadon.invoice_processor import InvoiceProcessor
+                from module_giao_dien.quan_ly_bang_bieu import QuanLyBangBieu
+                import qtawesome as qta
+
+                # 1. Rà soát Hóa đơn Rủi ro trên bảng Mua vào nếu chưa quét hoặc vừa nạp thêm
+                if isinstance(self.dict_hd_mua_vao, pd.DataFrame) and not self.dict_hd_mua_vao.empty:
+                    can_quet_rr = (
+                        'Đối chiếu HĐ rủi ro' not in self.dict_hd_mua_vao.columns
+                        or self.dict_hd_mua_vao['Đối chiếu HĐ rủi ro'].isna().any()
+                    )
+                    if can_quet_rr:
+                        self.ghi_log("🔍 Đang kích hoạt Radar rà soát Danh sách Doanh nghiệp Rủi ro...")
+                        try:
+                            rui_ro_mgr = getattr(self.giao_dien, 'ruiro_mgr', None) or getattr(self, 'ruiro_mgr', None)
+                            if rui_ro_mgr is None:
+                                rui_ro_mgr = HoaDonRuiRoManager()
+                                self.ruiro_mgr = rui_ro_mgr
+
+                            self.dict_hd_mua_vao, warnings = rui_ro_mgr.check_bang_ke_01_1(self.dict_hd_mua_vao)
+                            for w in warnings:
+                                self.ghi_log(w)
+
+                            QuanLyBangBieu.xu_ly_bang_ke(self.giao_dien.bang_hd_mua_vao, self.dict_hd_mua_vao)
+                            QuanLyBangBieu.cau_hinh_bang_du_lieu(self.giao_dien.bang_hd_mua_vao)
+                            QuanLyBangBieu.can_bang_kich_thuoc_bang(self.giao_dien.bang_hd_mua_vao)
+                        except Exception as e:
+                            self.ghi_log(f"⚠️ Lỗi Radar rủi ro: {e}")
+
+                    if 'Đối chiếu HĐ rủi ro' in self.dict_hd_mua_vao.columns:
+                        mask_rr = self.dict_hd_mua_vao['Đối chiếu HĐ rủi ro'] == "Thuộc DS hóa đơn rủi ro"
+                        df_rui_ro_rieng = self.dict_hd_mua_vao[mask_rr].copy()
+                        QuanLyBangBieu.xu_ly_bang_ke(self.giao_dien.bang_hd_rui_ro, df_rui_ro_rieng)
+                        QuanLyBangBieu.cau_hinh_bang_du_lieu(self.giao_dien.bang_hd_rui_ro)
+                        QuanLyBangBieu.can_bang_kich_thuoc_bang(self.giao_dien.bang_hd_rui_ro)
+                        self._to_mau_bang_hoa_don(df_rui_ro_rieng, self.giao_dien.bang_hd_rui_ro)
+
+                        if hien_popup_rui_ro and not df_rui_ro_rieng.empty:
+                            QMessageBox.critical(
+                                self.giao_dien,
+                                "BÁO ĐỘNG ĐỎ",
+                                f"Phát hiện {len(df_rui_ro_rieng)} hóa đơn đầu vào MUA CỦA DOANH NGHIỆP RỦI RO/BỎ TRỐN!\n\n"
+                                f"Hệ thống đã chuyển toàn bộ các hóa đơn này sang Tab 'Hóa đơn Rủi ro' để bạn kiểm tra."
+                            )
+                            self.giao_dien.tabs_hoa_don.setCurrentIndex(2)
+
+                # 2. Bóc tách Hóa đơn có Trạng thái Đặc biệt (Hủy, Xóa bỏ, Thay thế, Bị thay thế, Điều chỉnh...)
+                ds_dac_biet = []
+                if isinstance(self.dict_hd_ban_ra, pd.DataFrame) and not self.dict_hd_ban_ra.empty:
+                    df_db_br = InvoiceProcessor.loc_hoa_don_trang_thai_dac_biet(self.dict_hd_ban_ra, "Bán ra")
+                    if not df_db_br.empty:
+                        ds_dac_biet.append(df_db_br)
+
+                if isinstance(self.dict_hd_mua_vao, pd.DataFrame) and not self.dict_hd_mua_vao.empty:
+                    df_db_mv = InvoiceProcessor.loc_hoa_don_trang_thai_dac_biet(self.dict_hd_mua_vao, "Mua vào")
+                    if not df_db_mv.empty:
+                        ds_dac_biet.append(df_db_mv)
+
+                if ds_dac_biet and hasattr(self.giao_dien, 'tabs_hoa_don'):
+                    df_tong_dac_biet = pd.concat(ds_dac_biet, ignore_index=True)
+                    tab_db_idx = -1
+                    for i in range(self.giao_dien.tabs_hoa_don.count()):
+                        if self.giao_dien.tabs_hoa_don.tabText(i) == "Hóa đơn TT Đặc biệt":
+                            tab_db_idx = i
+                            break
+
+                    if tab_db_idx != -1:
+                        widget_db = self.giao_dien.tabs_hoa_don.widget(tab_db_idx)
+                        bang_db = widget_db.findChild(QTableWidget)
+                    else:
+                        widget_db = QWidget()
+                        layout_db = QVBoxLayout(widget_db)
+                        layout_db.setContentsMargins(0, 0, 0, 0)
+                        bang_db = QTableWidget()
+                        layout_db.addWidget(bang_db)
+                        self.giao_dien.tabs_hoa_don.addTab(
+                            widget_db,
+                            qta.icon('fa5s.filter', color='#D97706'),
+                            "Hóa đơn TT Đặc biệt"
+                        )
+
+                    if bang_db is not None:
+                        QuanLyBangBieu.xu_ly_bang_ke(bang_db, df_tong_dac_biet)
+                        QuanLyBangBieu.cau_hinh_bang_du_lieu(bang_db)
+                        QuanLyBangBieu.can_bang_kich_thuoc_bang(bang_db)
+                        self._to_mau_bang_hoa_don(df_tong_dac_biet, bang_db)
+
+                # 3. Tô màu trực tiếp trên bảng Mua vào và Bán ra
+                if isinstance(self.dict_hd_mua_vao, pd.DataFrame) and not self.dict_hd_mua_vao.empty:
+                    self._to_mau_bang_hoa_don(self.dict_hd_mua_vao, self.giao_dien.bang_hd_mua_vao)
+                if isinstance(self.dict_hd_ban_ra, pd.DataFrame) and not self.dict_hd_ban_ra.empty:
+                    self._to_mau_bang_hoa_don(self.dict_hd_ban_ra, self.giao_dien.bang_hd_ban_ra)
+
             def cap_nhat_kpi_chuan_bi(self):
                 """Cập nhật các số liệu trên 4 thẻ KPI của màn hình Chuẩn bị Dữ liệu"""
+                try:
+                    self._dong_bo_canh_bao_hoa_don(hien_popup_rui_ro=False)
+                except Exception:
+                    pass
                 try:
                     sl_xml = len(self.toan_bo_file_xml) if hasattr(self, 'toan_bo_file_xml') else 0
                     if hasattr(self.giao_dien, 'kpi_to_khai'):
@@ -471,10 +619,22 @@ class UngDungRRR:
 
                 if thong_bao:
                     self.ghi_log(f"⚡ Đã kéo thả thành công: {', '.join(thong_bao)}")
+                if so_mv > 0 or so_br > 0:
+                    self._dong_bo_canh_bao_hoa_don(hien_popup_rui_ro=(so_mv > 0))
                 self.cap_nhat_kpi_chuan_bi()
+
+            def cap_nhat_tien_trinh(self, phan_tram: int, buoc: str = "", chi_tiet: str = "", badge: str = "Đang chạy"):
+                """Cập nhật tiến trình qua giao diện và ép Qt vẽ lại ngay lập tức"""
+                if hasattr(self, 'giao_dien') and hasattr(self.giao_dien, 'cap_nhat_tien_trinh'):
+                    self.giao_dien.cap_nhat_tien_trinh(phan_tram, buoc, chi_tiet, badge)
+                    from PySide6.QtWidgets import QApplication
+                    QApplication.processEvents()
 
             def thuc_thi_phan_tich(self):
                 """Hàm kích hoạt khi bấm nút Phân tích"""
+                from PySide6.QtWidgets import QMessageBox
+                import pandas as pd
+
                 loai_bctc = self.giao_dien.cb_bctc.currentText()
                 nam_pt = self.giao_dien.cb_nam.currentText()
                 check_tms = "Có" if self.giao_dien.chk_tms.isChecked() else "Không"
@@ -484,8 +644,22 @@ class UngDungRRR:
                 if hasattr(self.giao_dien, 'kpi_trang_thai'):
                     self.giao_dien.kpi_trang_thai.cap_nhat(gia_tri="Đang chạy", subtext="Đang phân tích...")
 
+                # Kiểm tra an toàn: Nếu chưa nạp bất kỳ dữ liệu nào thì cảnh báo và không chạy rỗng
+                has_xml = bool(self.danh_sach_file_xml_cho or self.du_lieu_he_thong_to_khai)
+                has_hd_br = isinstance(self.dict_hd_ban_ra, pd.DataFrame) and not self.dict_hd_ban_ra.empty
+                has_hd_mv = isinstance(self.dict_hd_mua_vao, pd.DataFrame) and not self.dict_hd_mua_vao.empty
+                if not has_xml and not has_hd_br and not has_hd_mv:
+                    self.cap_nhat_tien_trinh(0, "Sẵn sàng phân tích", "Chưa có dữ liệu Tờ khai hoặc Hóa đơn để phân tích.", "Chờ lệnh")
+                    QMessageBox.warning(self.giao_dien, "Chưa có dữ liệu", "Vui lòng nạp Tờ khai XML hoặc Hóa đơn trước khi thực hiện phân tích!")
+                    if hasattr(self.giao_dien, 'kpi_trang_thai'):
+                        self.giao_dien.kpi_trang_thai.cap_nhat(gia_tri="Sẵn sàng", subtext="Chờ lệnh khởi chạy")
+                    return
+
+                self.cap_nhat_tien_trinh(5, "Khởi động phân tích", "Đang nạp cấu hình và chuẩn bị dữ liệu...", "Đang chạy")
+
                 if not self.danh_sach_file_xml_cho:
                     self.ghi_log("Đang tải lại giao diện Tờ khai từ bộ nhớ RAM...")
+                    self.cap_nhat_tien_trinh(15, "Tải dữ liệu từ RAM", "Đang nạp dữ liệu tờ khai từ bộ nhớ RAM...", "Đang chạy")
 
                     # 1. Quét sạch các Tab Tờ khai trên giao diện
                     while self.giao_dien.tab_tong_hop_chi_tiet.count() > 0:
@@ -513,10 +687,12 @@ class UngDungRRR:
                     self.chay_engine_phan_tich()
                     return
 
-                # ... (Phần code bên dưới giữ nguyên) ...
+                # Phân tích cấu trúc file XML mới
                 self.ghi_log("Đang phân tích cấu trúc Tờ khai XML...")
-                # Lấy số lượng file chờ gán cho biến đếm
-                self.so_luong_xml_dang_chay = len(self.danh_sach_file_xml_cho)
+                self.tong_so_xml_can_doc = len(self.danh_sach_file_xml_cho)
+                self.so_xml_da_doc_xong = 0
+                self.so_luong_xml_dang_chay = self.tong_so_xml_can_doc
+                self.cap_nhat_tien_trinh(8, "Đang đọc Tờ khai XML", f"Chuẩn bị xử lý {self.tong_so_xml_can_doc} file XML...", "Đang đọc XML")
 
                 # Vòng lặp kích hoạt luồng đọc từng file
                 for file in self.danh_sach_file_xml_cho:
@@ -540,6 +716,17 @@ class UngDungRRR:
                     self.ghi_log(f"❌ Lỗi xử lý kết quả đọc XML: {e}")
                 finally:
                     self.so_luong_xml_dang_chay -= 1
+                    tong = getattr(self, 'tong_so_xml_can_doc', 0)
+                    if tong > 0:
+                        self.so_xml_da_doc_xong = getattr(self, 'so_xml_da_doc_xong', 0) + 1
+                        pct = 8 + int((self.so_xml_da_doc_xong / tong) * 17)  # 8% -> 25%
+                        ma_tk = ket_qua.get("ThongTinChung", {}).get("MaTKhai", "XML")
+                        self.cap_nhat_tien_trinh(
+                            pct,
+                            "Đang đọc Tờ khai XML",
+                            f"Đã giải mã {self.so_xml_da_doc_xong}/{tong} file XML (Mã [{ma_tk}])...",
+                            "Đang đọc XML"
+                        )
                     if self.so_luong_xml_dang_chay <= 0:
                         nam_pt = self.giao_dien.cb_nam.currentText()
                         tu_ky = f"01/{nam_pt}" if nam_pt != "Tất cả các năm" else ""
@@ -631,6 +818,7 @@ class UngDungRRR:
                 self.ghi_log("\n" + "=" * 40)
                 self.ghi_log("🚀 KHỞI ĐỘNG PHÂN TÍCH RỦI RO")
                 self.ghi_log("=" * 40)
+                self.cap_nhat_tien_trinh(20, "Khởi động Engine", "Chuẩn bị rà soát và nạp công thức rủi ro...", "Đang chạy")
 
                 # ==============================================================
                 # CỬA KHẨU 1: BOT ĐỒNG BỘ NGÀY NỘP KHBS TỪ SAP
@@ -648,9 +836,11 @@ class UngDungRRR:
                         # Vẫn không chịu nhập thì hủy toàn bộ tiến trình
                         if not config.get("user_tms"):
                             self.ghi_log("⚠️ Hủy phân tích do chưa cấu hình SAP.")
+                            self.cap_nhat_tien_trinh(0, "Sẵn sàng phân tích", "Đã hủy phân tích do chưa cấu hình SAP.", "Chờ lệnh")
                             return
 
                     self.ghi_log("⏳ Bắt đầu luồng kiểm tra dữ liệu từ TMS...")
+                    self.cap_nhat_tien_trinh(22, "Đồng bộ TMS", "Bắt đầu luồng đồng bộ ngày nộp tờ khai từ TMS/SAP...", "Đồng bộ")
 
                     # 1. TỰ ĐỘNG NỘI SUY NGÀY & MST TỪ DỮ LIỆU ĐÃ NẠP
                     cac_nam = []
@@ -703,12 +893,14 @@ class UngDungRRR:
 
                     def on_tms_progress(msg):
                         self.loading_dialog.setLabelText(msg)
+                        self.cap_nhat_tien_trinh(24, "Đang đồng bộ TMS", str(msg), "Đồng bộ")
 
                     def on_tms_finished(thanh_cong, ket_qua, so_luong):
                         self.loading_dialog.close()
                         if thanh_cong:
                             self.ghi_log(
                                 f"   ✅ Đã đồng bộ ngày nộp thực tế cho {so_luong} Tờ khai (Nguồn: {os.path.basename(ket_qua)})")
+                            self.cap_nhat_tien_trinh(28, "Đồng bộ TMS hoàn tất", f"Đã đồng bộ {so_luong} tờ khai.", "Đã đồng bộ")
                         else:
                             self.ghi_log(f"   ❌ Lỗi đồng bộ TMS: {ket_qua}")
                             QMessageBox.warning(self.giao_dien, "Lỗi SAP", f"Tiến trình đồng bộ thất bại:\n{ket_qua}")
@@ -726,6 +918,7 @@ class UngDungRRR:
                     # ==============================================================
                 # NẾU KHÔNG BẬT ĐỒNG BỘ TMS -> NHẢY THẲNG ĐẾN HÀM PHÂN TÍCH
                 # ==============================================================
+                self.cap_nhat_tien_trinh(25, "Chuẩn bị phân tích", "Sẵn sàng các dữ liệu kiểm tra rủi ro...", "Đang chạy")
                 self._tiep_tuc_phan_tich_sau_dong_bo()
 
             def _tiep_tuc_phan_tich_sau_dong_bo(self):
@@ -743,31 +936,40 @@ class UngDungRRR:
                 # 1. KIỂM TRA TRẠNG THÁI DOANH NGHIỆP TRONG HÓA ĐƠN TỪ SAP
                 if hasattr(self.giao_dien, 'chk_tms') and self.giao_dien.chk_tms.isChecked():
                     self.ghi_log("🔍 Đang tra cứu trạng thái TMS...")
+                    self.cap_nhat_tien_trinh(30, "Tra cứu TMS", "Đang quét mã số thuế và kiểm tra trạng thái hoạt động qua TMS...", "Tra cứu TMS")
 
                     mst_can_tra_cuu = set()
                     col_mua_vao = ""
                     col_ban_ra = ""
 
-                    if isinstance(self.dict_hd_mua_vao, pd.DataFrame):
-                        if 'Mã số thuế người bán' in self.dict_hd_mua_vao.columns:
-                            col_mua_vao = 'Mã số thuế người bán'
-                        elif 'MSTNguoiBan' in self.dict_hd_mua_vao.columns:
-                            col_mua_vao = 'MSTNguoiBan'
+                    if isinstance(self.dict_hd_mua_vao, pd.DataFrame) and not self.dict_hd_mua_vao.empty:
+                        for c_cand in ['MSTNguoiBan', 'Mã số thuế người bán', 'MST người bán', 'MST người bán/MST người xuất hàng']:
+                            if c_cand in self.dict_hd_mua_vao.columns:
+                                col_mua_vao = c_cand
+                                break
                         if col_mua_vao:
-                            mst_can_tra_cuu.update(self.dict_hd_mua_vao[col_mua_vao].dropna().astype(str).unique())
+                            mst_can_tra_cuu.update(
+                                self.dict_hd_mua_vao[col_mua_vao].dropna().astype(str).str.strip().str.replace(r'\.0$', '', regex=True).unique()
+                            )
 
-                    if isinstance(self.dict_hd_ban_ra, pd.DataFrame):
-                        if 'MST người mua' in self.dict_hd_ban_ra.columns:
-                            col_ban_ra = 'MST người mua'
-                        elif 'MSTNguoiMua' in self.dict_hd_ban_ra.columns:
-                            col_ban_ra = 'MSTNguoiMua'
+                    if isinstance(self.dict_hd_ban_ra, pd.DataFrame) and not self.dict_hd_ban_ra.empty:
+                        for c_cand in ['MSTNguoiMua', 'MST người mua', 'MST người mua/MST người nhận hàng']:
+                            if c_cand in self.dict_hd_ban_ra.columns:
+                                col_ban_ra = c_cand
+                                break
                         if col_ban_ra:
-                            mst_can_tra_cuu.update(self.dict_hd_ban_ra[col_ban_ra].dropna().astype(str).unique())
+                            mst_can_tra_cuu.update(
+                                self.dict_hd_ban_ra[col_ban_ra].dropna().astype(str).str.strip().str.replace(r'\.0$', '', regex=True).unique()
+                            )
 
-                    mst_can_tra_cuu = [mst.strip() for mst in mst_can_tra_cuu if mst.strip() != ""]
+                    mst_can_tra_cuu = [
+                        mst.strip() for mst in mst_can_tra_cuu
+                        if mst.strip() != "" and mst.strip().lower() not in ["nan", "none"]
+                    ]
 
                     if mst_can_tra_cuu:
                         self.ghi_log(f"   Chuẩn bị quét {len(mst_can_tra_cuu)} Mã số thuế qua TMS...")
+                        self.cap_nhat_tien_trinh(32, "Đang tra cứu TMS", f"Đang quét {len(mst_can_tra_cuu)} MST trên hệ thống SAP/TMS...", "Tra cứu TMS")
 
                         sap_robot = SAPWorker(mst_can_tra_cuu)
                         sap_robot.progress.connect(lambda step, msg: self.ghi_log(f"   [TMS] {msg}"))
@@ -778,17 +980,21 @@ class UngDungRRR:
                         if ket_qua_tms:
                             self.ghi_log(
                                 f"   ✅ Nhận thành công {len(ket_qua_tms)} kết quả. Đang map vào bảng và tô màu cảnh báo...")
+                            self.cap_nhat_tien_trinh(35, "Hoàn tất TMS", f"Đã nhận {len(ket_qua_tms)} kết quả MST từ TMS.", "TMS hoàn tất")
 
                             df_tms = pd.DataFrame(ket_qua_tms, columns=['MST_SAP', 'TenNNT', 'CQT_TMS', 'MaTrangThai',
                                                                         'TrangThaiTMS', 'NgayCapNhat'])
                             df_map = df_tms[['MST_SAP', 'TrangThaiTMS', 'CQT_TMS']].drop_duplicates(subset=['MST_SAP'])
 
                             def _xu_ly_map_va_to_mau(df_hd, bang_widget, col_mst):
-                                if not isinstance(df_hd, pd.DataFrame) or df_hd.empty or not col_mst: return df_hd
+                                if not isinstance(df_hd, pd.DataFrame) or df_hd.empty or not col_mst:
+                                    return df_hd
 
                                 for col in ['TrangThaiTMS', 'CQT_TMS']:
-                                    if col in df_hd.columns: df_hd.drop(columns=[col], inplace=True)
+                                    if col in df_hd.columns:
+                                        df_hd.drop(columns=[col], inplace=True)
 
+                                df_hd[col_mst] = df_hd[col_mst].fillna('').astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
                                 df_new = pd.merge(df_hd, df_map, how='left', left_on=col_mst, right_on='MST_SAP')
                                 df_new['TrangThaiTMS'] = df_new['TrangThaiTMS'].fillna('Chưa xác định')
                                 df_new['CQT_TMS'] = df_new['CQT_TMS'].fillna('')
@@ -797,26 +1003,7 @@ class UngDungRRR:
                                 from module_giao_dien.quan_ly_bang_bieu import QuanLyBangBieu
                                 QuanLyBangBieu.xu_ly_bang_ke(bang_widget, df_new)
                                 QuanLyBangBieu.cau_hinh_bang_du_lieu(bang_widget)
-
-                                tu_khoa_do = ["không hoạt động tại địa chỉ", "chờ xác minh"]
-                                tu_khoa_vang = ["ngừng hoạt động nhưng chưa hoàn thành", "tạm nghỉ kinh doanh"]
-
-                                idx_tms = df_new.columns.get_loc('TrangThaiTMS')
-                                idx_hd_goc = df_new.columns.get_loc(
-                                    'Trạng thái hóa đơn') if 'Trạng thái hóa đơn' in df_new.columns else -1
-
-                                for row in range(bang_widget.rowCount()):
-                                    tt_tms = str(df_new.iloc[row, idx_tms]).lower()
-                                    tt_hd_goc = str(df_new.iloc[row, idx_hd_goc]).lower() if idx_hd_goc != -1 else ""
-
-                                    is_do = any(k in tt_tms for k in tu_khoa_do) or "hủy" in tt_hd_goc
-                                    is_vang = any(k in tt_tms for k in tu_khoa_vang)
-
-                                    if is_do or is_vang:
-                                        bg_color = QColor("#fee2e2") if is_do else QColor("#fef08a")
-                                        for col in range(bang_widget.columnCount()):
-                                            item = bang_widget.item(row, col)
-                                            if item: item.setBackground(bg_color)
+                                self._to_mau_bang_hoa_don(df_new, bang_widget)
                                 return df_new
 
                             self.dict_hd_mua_vao = _xu_ly_map_va_to_mau(self.dict_hd_mua_vao,
@@ -824,10 +1011,26 @@ class UngDungRRR:
                             self.dict_hd_ban_ra = _xu_ly_map_va_to_mau(self.dict_hd_ban_ra,
                                                                        self.giao_dien.bang_hd_ban_ra, col_ban_ra)
 
-                            # TẠO BẢNG TỔNG HỢP NNT CÓ TRẠNG THÁI BẤT THƯỜNG
-                            trang_thai_an_toan = ['00', '01', '04']
-                            df_bat_thuong = df_tms[
-                                ~df_tms['MaTrangThai'].astype(str).str.strip().isin(trang_thai_an_toan)].copy()
+                            # TẠO BẢNG TỔNG HỢP NNT CÓ TRẠNG THÁI BẤT THƯỜNG (KẾT HỢP MÃ TRẠNG THÁI & TỪ KHÓA)
+                            trang_thai_an_toan = ['00', '04']
+                            tu_khoa_bat_thuong = [
+                                "không hoạt động", "bỏ địa chỉ", "chờ xác minh", "mất tích",
+                                "ngừng hoạt động", "tạm nghỉ", "tạm ngừng", "chấm dứt", "đóng mst"
+                            ]
+
+                            def _la_nnt_bat_thuong(row_tms):
+                                ma_tt = str(row_tms.get('MaTrangThai', '')).strip()
+                                ten_tt = str(row_tms.get('TrangThaiTMS', '')).strip().lower()
+                                if any(k in ten_tt for k in tu_khoa_bat_thuong):
+                                    return True
+                                if ma_tt and ma_tt not in trang_thai_an_toan:
+                                    if "đang hoạt động" in ten_tt and not any(k in ten_tt for k in tu_khoa_bat_thuong):
+                                        return False
+                                    return True
+                                return False
+
+                            mask_bt = df_tms.apply(_la_nnt_bat_thuong, axis=1)
+                            df_bat_thuong = df_tms[mask_bt].copy()
 
                             if not df_bat_thuong.empty:
                                 df_bat_thuong.rename(columns={'MST_SAP': 'Mã số thuế', 'TenNNT': 'Tên người nộp thuế',
@@ -878,6 +1081,13 @@ class UngDungRRR:
                 # 2. CHẠY ENGINE PHÂN TÍCH RỦI RO (PHÂN TÁCH ĐỘC LẬP TỪNG NĂM)
                 # =================================================================
                 self.ghi_log("⚙️ Đang phân tích rủi ro tài chính...")
+                self.cap_nhat_tien_trinh(38, "Phân tích Rủi ro", "Đang nạp bộ công thức và chuẩn bị dữ liệu...", "Phân tích")
+
+                # Tối ưu: Lọc hóa đơn rác 1 lần duy nhất ở bên ngoài vòng lặp
+                from module_phan_tich.bao_cao_doanh_so import BaoCaoDoanhSoEngine
+                from module_doc_hoadon.invoice_processor import InvoiceProcessor
+                df_br_sach_all = InvoiceProcessor.loc_hoa_don_tinh_toan(self.dict_hd_ban_ra)
+                df_mv_sach_all = InvoiceProcessor.loc_hoa_don_tinh_toan(self.dict_hd_mua_vao)
 
                 # Tạo danh sách các năm cần phân tích
                 danh_sach_nam = []
@@ -888,21 +1098,40 @@ class UngDungRRR:
                     for form, dict_ky in self.du_lieu_he_thong_to_khai.items():
                         for ky in dict_ky.keys():
                             try:
-                                cac_nam.add(str(ky)[-4:])
+                                y = str(ky).split('/')[-1].strip()
+                                if len(y) >= 4:
+                                    y = y[-4:]
+                                if y.isdigit() and len(y) == 4 and 2000 <= int(y) <= 2099:
+                                    cac_nam.add(y)
                             except:
                                 pass
-                    danh_sach_nam = sorted(list(cac_nam)) if cac_nam else [str(datetime.now().year)]
+
+                    # Bổ sung năm từ hóa đơn nếu có
+                    for df_hd in [df_br_sach_all, df_mv_sach_all]:
+                        if isinstance(df_hd, pd.DataFrame) and not df_hd.empty and '_Nam' in df_hd.columns:
+                            for y_hd in df_hd['_Nam'].dropna().unique():
+                                try:
+                                    y_str = str(y_hd).strip().replace('.0', '')
+                                    if y_str.isdigit() and len(y_str) == 4 and 2000 <= int(y_str) <= 2099:
+                                        cac_nam.add(y_str)
+                                except:
+                                    pass
+
+                    # Bắt buộc sắp xếp từ MỚI ĐẾN CŨ (descending: 2026 -> 2025 -> 2024...)
+                    danh_sach_nam = sorted(list(cac_nam), reverse=True) if cac_nam else [str(datetime.now().year)]
 
                 self.kho_ket_qua_nam = {}
                 dict_tong = QuanLyCongThuc.tai_du_lieu_tong_hop()
 
-                # Tối ưu: Lọc hóa đơn rác 1 lần duy nhất ở bên ngoài vòng lặp
-                from module_phan_tich.bao_cao_doanh_so import BaoCaoDoanhSoEngine
-                from module_doc_hoadon.invoice_processor import InvoiceProcessor
-                df_br_sach_all = InvoiceProcessor.loc_hoa_don_tinh_toan(self.dict_hd_ban_ra)
-                df_mv_sach_all = InvoiceProcessor.loc_hoa_don_tinh_toan(self.dict_hd_mua_vao)
-
-                for nam in danh_sach_nam:
+                so_nam = len(danh_sach_nam)
+                for idx_nam, nam in enumerate(danh_sach_nam):
+                    pct_nam_start = 40 + int((idx_nam / max(1, so_nam)) * 38)  # 40% -> 78%
+                    self.cap_nhat_tien_trinh(
+                        pct_nam_start,
+                        f"Phân tích năm {nam}",
+                        f"Đang chạy engine phân tích rủi ro cho năm {nam} ({idx_nam + 1}/{so_nam})...",
+                        f"Năm {nam}"
+                    )
                     self.ghi_log(f"⚙️ Phân tích dữ liệu năm {nam}...")
 
                     # A. Chạy Engine Rủi ro cho riêng năm này
@@ -911,6 +1140,14 @@ class UngDungRRR:
                         self.du_lieu_he_thong_to_khai, self.dict_hd_ban_ra, self.dict_hd_mua_vao,
                         nam_phan_tich=nam, df_cdsps_tt200=self.du_lieu_bcdsps_tt200,
                         loai_bctc=loai_bctc, danh_sach_rule_chon=self.danh_sach_rule_duoc_chon
+                    )
+
+                    pct_nam_mid = 40 + int(((idx_nam + 0.6) / max(1, so_nam)) * 38)
+                    self.cap_nhat_tien_trinh(
+                        pct_nam_mid,
+                        f"Đối chiếu doanh số {nam}",
+                        f"Đang đối chiếu doanh số hóa đơn mua vào - bán ra năm {nam}...",
+                        f"Năm {nam}"
                     )
 
                     # B. Tính Doanh số cho riêng năm này
@@ -928,15 +1165,70 @@ class UngDungRRR:
                         "df_mv_sach": df_mv_sach_all
                     }
 
-                # Bơm các năm vào Combobox để giao diện hiển thị
+                    pct_nam_end = 40 + int(((idx_nam + 1) / max(1, so_nam)) * 38)
+                    self.cap_nhat_tien_trinh(
+                        pct_nam_end,
+                        f"Hoàn thành năm {nam}",
+                        f"Đã phân tích xong dữ liệu năm {nam}.",
+                        f"Năm {nam}"
+                    )
+
+                # ==============================================================
+                # XÁC ĐỊNH NĂM HIỂN THỊ MẶC ĐỊNH & THỨ TỰ TỪ MỚI ĐẾN CŨ
+                # ==============================================================
+                # Tiêu chí chọn năm mặc định: Ưu tiên năm mới nhất có đầy đủ dữ liệu
+                def _danh_gia_du_lieu_nam(nam_str):
+                    dem_to_khai = 0
+                    co_gtgt = False
+                    co_bctc = False
+                    for form, dict_ky in self.du_lieu_he_thong_to_khai.items():
+                        for ky in dict_ky.keys():
+                            if str(ky).endswith(str(nam_str)) or f"/{nam_str}" in str(ky) or str(ky) == str(nam_str):
+                                dem_to_khai += 1
+                                f_lower = str(form).lower()
+                                if any(k in f_lower for k in ["01/gtgt", "01_gtgt", "842"]):
+                                    co_gtgt = True
+                                if any(k in f_lower for k in ["bctc", "133", "200", "683"]):
+                                    co_bctc = True
+                    dem_hd = 0
+                    for df_hd in [df_br_sach_all, df_mv_sach_all]:
+                        if isinstance(df_hd, pd.DataFrame) and not df_hd.empty and '_Nam' in df_hd.columns:
+                            dem_hd += len(df_hd[df_hd['_Nam'] == str(nam_str)])
+
+                    diem = dem_to_khai * 10 + dem_hd
+                    if co_gtgt: diem += 50
+                    if co_bctc: diem += 50
+                    return diem, co_gtgt, co_bctc, dem_to_khai, dem_hd
+
+                nam_mac_dinh = danh_sach_nam[0]
+                if nam_pt != "Tất cả các năm" and nam_pt in danh_sach_nam:
+                    nam_mac_dinh = nam_pt
+                else:
+                    # Lọc các năm có dữ liệu đáng kể (có GTGT, BCTC, hoặc nhiều tờ khai / hóa đơn)
+                    # danh_sach_nam đã sắp xếp từ MỚI ĐẾN CŨ nên duyệt từ đầu là ưu tiên năm mới nhất
+                    nam_co_du_lieu_tot = []
+                    for n in danh_sach_nam:
+                        diem, co_gtgt, co_bctc, dem_tk, dem_hd = _danh_gia_du_lieu_nam(n)
+                        if co_gtgt or co_bctc or dem_tk >= 2 or dem_hd > 0:
+                            nam_co_du_lieu_tot.append((n, diem))
+
+                    if nam_co_du_lieu_tot:
+                        # Ưu tiên năm mới nhất có dữ liệu tốt
+                        nam_mac_dinh = nam_co_du_lieu_tot[0][0]
+                    else:
+                        nam_mac_dinh = danh_sach_nam[0]
+
+                # Bơm các năm vào Combobox để giao diện hiển thị (Đã đảo từ MỚI ĐẾN CŨ)
                 if hasattr(self.giao_dien, 'cb_nam_kq'):
                     self.giao_dien.cb_nam_kq.blockSignals(True)
                     self.giao_dien.cb_nam_kq.clear()
                     self.giao_dien.cb_nam_kq.addItems(danh_sach_nam)
+                    self.giao_dien.cb_nam_kq.setCurrentText(nam_mac_dinh)
                     self.giao_dien.cb_nam_kq.blockSignals(False)
 
-                # Ra lệnh cho Giao diện tự động móc RAM ra vẽ cho năm đầu tiên
-                self.chuyen_view_ket_qua_nam(danh_sach_nam[0])
+                self.cap_nhat_tien_trinh(80, "Kết xuất giao diện", f"Đang kết xuất giao diện báo cáo cho năm {nam_mac_dinh}...", "Kết xuất")
+                # Ra lệnh cho Giao diện tự động móc RAM ra vẽ cho năm mặc định tối ưu
+                self.chuyen_view_ket_qua_nam(nam_mac_dinh)
 
                 # ==============================================================
                 # 3. BƠM DỮ LIỆU ĐỐI CHIẾU TỒN KHO
@@ -950,11 +1242,12 @@ class UngDungRRR:
 
                                 # TỒN KHO CƠ BẢN
                                 self.ghi_log("📦 Đang rà soát đối chiếu Tồn kho...")
+                                self.cap_nhat_tien_trinh(84, "Rà soát Tồn kho", "Đang đối chiếu dữ liệu tồn kho từ hóa đơn...", "Tồn kho")
                                 from module_phan_tich.inventory_matcher import InventoryReconcilerLight
                                 from module_giao_dien.builder_phan_tich_ton_kho import BuilderPhanTichTonKho
                                 import qtawesome as qta
 
-                                reconciler_old = InventoryReconcilerLight(self.dict_hd_mua_vao, self.dict_hd_ban_ra)
+                                reconciler_old = InventoryReconcilerLight(df_mv_sach_all, df_br_sach_all)
                                 kq_ton_kho = reconciler_old.analyze_inventory()
 
                                 if kq_ton_kho:
@@ -976,6 +1269,7 @@ class UngDungRRR:
 
                                 # TỒN KHO AI
                                 self.ghi_log("🤖 Đang khởi động rà soát đối chiếu tên mặt hàng...")
+                                self.cap_nhat_tien_trinh(88, "Đối chiếu Mặt hàng (AI)", "Đang khởi động phân tích tên mặt hàng bằng AI...", "AI Tồn kho")
                                 from module_giao_dien.inventory_widget import InventoryAnalysisWidget
                                 from module_phan_tich.inventory_worker import InventoryAnalysisWorker
                                 from PySide6.QtCore import QThread
@@ -997,7 +1291,7 @@ class UngDungRRR:
                                 widget_ton_kho_ai.update_status_label("Đang khởi động...")
 
                                 self.inv_thread = QThread()
-                                self.inv_worker = InventoryAnalysisWorker(self.dict_hd_mua_vao, self.dict_hd_ban_ra)
+                                self.inv_worker = InventoryAnalysisWorker(df_mv_sach_all, df_br_sach_all)
                                 self.inv_worker.moveToThread(self.inv_thread)
 
                                 self.inv_thread.started.connect(self.inv_worker.run_analysis)
@@ -1005,10 +1299,11 @@ class UngDungRRR:
                                 self.inv_worker.progress_text.connect(lambda msg: self.ghi_log(f"  {msg}"))
 
                                 def _on_inventory_finished(matcher, df_result):
-                                    widget_ton_kho_ai.load_precalculated_data(matcher, self.dict_hd_mua_vao,
-                                                                              self.dict_hd_ban_ra)
+                                    widget_ton_kho_ai.load_precalculated_data(matcher, df_mv_sach_all,
+                                                                              df_br_sach_all)
                                     self.inv_thread.quit()
                                     self.ghi_log("   ✅ Đã phân tích đối chiếu bằng AI thành công.")
+                                    self.cap_nhat_tien_trinh(96, "Hoàn tất AI", "Đã đối chiếu danh mục mặt hàng AI hoàn tất.", "AI Tồn kho")
 
                                 self.inv_worker.finished.connect(_on_inventory_finished)
                                 self.inv_worker.error.connect(lambda e: self.ghi_log(f"   ❌ [LỖI] {e}"))
@@ -1017,6 +1312,7 @@ class UngDungRRR:
                     except Exception as e:
                         self.ghi_log(f"   ❌ [LỖI KHỞI TẠO TỒN KHO] Quá trình rà soát bị lỗi: {e}")
 
+                self.cap_nhat_tien_trinh(100, "Phân tích hoàn tất", f"Hệ thống đã sẵn sàng. Đang hiển thị kết quả năm {nam_mac_dinh}.", "Hoàn tất")
                 self.ghi_log("✅ Phân tích tổng thể hoàn tất. Đang trích xuất báo cáo...")
                 QMessageBox.information(self.giao_dien, "Hoàn tất",
                                         "Quá trình rà soát và đối chiếu đã thành công!\n\nHệ thống đã sẵn sàng. Nhấn 'OK' để xem chi tiết Bảng kết quả phân tích.")
@@ -1027,6 +1323,16 @@ class UngDungRRR:
 
                 # Nếu lỗi cũng phải trừ đi 1 để tránh hệ thống bị treo đơ
                 self.so_luong_xml_dang_chay -= 1
+                tong = getattr(self, 'tong_so_xml_can_doc', 0)
+                if tong > 0:
+                    self.so_xml_da_doc_xong = getattr(self, 'so_xml_da_doc_xong', 0) + 1
+                    pct = 8 + int((self.so_xml_da_doc_xong / tong) * 17)
+                    self.cap_nhat_tien_trinh(
+                        pct,
+                        "Đang đọc Tờ khai XML",
+                        f"Đã xử lý {self.so_xml_da_doc_xong}/{tong} file (1 file lỗi)...",
+                        "Đang đọc XML"
+                    )
                 if self.so_luong_xml_dang_chay <= 0:
                     self.chay_engine_phan_tich()
             def tai_template_tt200(self):
@@ -1405,42 +1711,70 @@ class UngDungRRR:
                         xu_ly_sub_tab(ten_pl, du_lieu_pl)
 
             def chay(self):
-                """Luồng khởi động thực tế: Bắt buộc đăng nhập trước khi vào hệ thống"""
+                """Luồng khởi động thực tế: Tự động xác thực nếu máy đã kích hoạt, ngược lại hiện form đăng nhập"""
                 from module_giao_dien.dang_nhap import LoginDialog
                 from PySide6.QtWidgets import QDialog
-                from PySide6.QtCore import QTimer
-                import os, json
 
+                # 1. TỰ ĐỘNG XÁC THỰC: Nếu máy tính này đã được kích hoạt trước đó -> Bỏ qua form đăng nhập, vào thẳng app
+                ok, usr, role, allowed_cqt = LoginDialog.try_auto_login()
+                if ok:
+                    self.username = usr
+                    self.role = role
+                    self.allowed_cqt = allowed_cqt
+                    self._khoi_dong_he_thong()
+                    return
+
+                # 2. CHƯA KÍCH HOẠT: Mở form đăng nhập (mặc định hiển thị Tài khoản - Mật khẩu)
                 dialog_dang_nhap = LoginDialog()
-
                 if dialog_dang_nhap.exec() == QDialog.DialogCode.Accepted:
                     self.allowed_cqt = dialog_dang_nhap.allowed_cqt
                     self.username = dialog_dang_nhap.username
                     self.role = dialog_dang_nhap.role
-
-                    self.giao_dien.show()
-                    QTimer.singleShot(1500, self.kiem_tra_update_ngam)
-
-                    # ==============================================================
-                    # KÍCH HOẠT TOUR HƯỚNG DẪN TÂN THỦ
-                    # ==============================================================
-                    can_chay_tour = True
-                    if os.path.exists("Data/tour_config.json"):
-                        try:
-                            with open("Data/tour_config.json", "r") as f:
-                                can_chay_tour = json.load(f).get("show_tour", True)
-                        except: pass
-
-                    if can_chay_tour:
-                        # Đợi nửa giây cho app vẽ xong nút bấm rồi mới phủ mờ
-                        QTimer.singleShot(500, self.khoi_dong_tour_huong_dan)
-                    # ==============================================================
-
-                    sys.exit(self.app.exec())
+                    self._khoi_dong_he_thong()
                 else:
                     sys.exit(0)
 
+            def _khoi_dong_he_thong(self):
+                from PySide6.QtCore import QTimer
+                import os, json
+
+                # Cập nhật tên người dùng lên giao diện chính
+                try:
+                    if hasattr(self.giao_dien, 'lbl_user_txt'):
+                        self.giao_dien.lbl_user_txt.setText(str(self.username))
+                        self.giao_dien.lbl_user_txt.setToolTip(f"Tài khoản: {self.username} | Quyền: {self.role}")
+                except Exception:
+                    pass
+
+                self.giao_dien.show()
+                QTimer.singleShot(1500, self.kiem_tra_update_ngam)
+
+                # ==============================================================
+                # KÍCH HOẠT TOUR HƯỚNG DẪN TÂN THỦ
+                # ==============================================================
+                can_chay_tour = True
+                if os.path.exists("Data/tour_config.json"):
+                    try:
+                        with open("Data/tour_config.json", "r") as f:
+                            can_chay_tour = json.load(f).get("show_tour", True)
+                    except: pass
+
+                if can_chay_tour:
+                    # Đợi nửa giây cho app vẽ xong nút bấm rồi mới phủ mờ
+                    QTimer.singleShot(500, self.khoi_dong_tour_huong_dan)
+                # ==============================================================
+
+                sys.exit(self.app.exec())
+
             def khoi_dong_tour_huong_dan(self):
+                # Đóng tour cũ nếu đang mở để tránh chồng chéo
+                if hasattr(self, 'tour_overlay') and self.tour_overlay:
+                    try:
+                        self.tour_overlay.hide()
+                        self.tour_overlay.deleteLater()
+                    except:
+                        pass
+
                 kich_ban = [
                     # ==========================================================
                     # CỤM 1: CÁC BƯỚC TẠI TAB 0 (CHUẨN BỊ DỮ LIỆU)
@@ -1448,70 +1782,82 @@ class UngDungRRR:
                     {
                         "tab_index": 0,
                         "widget": self.giao_dien.btn_chon_file_xml,
-                        "tieu_de": "1. Upload Tờ khai XML",
-                        "noi_dung": "Bắt đầu bằng việc upload hàng loạt Tờ khai Thuế (XML) vào hệ thống tại đây."
+                        "tieu_de": "1. Tải lên Tờ khai Thuế (XML)",
+                        "noi_dung": "Bắt đầu bằng việc upload hàng loạt Tờ khai Thuế (XML) vào hệ thống. Hệ thống tự động phân loại Tờ khai chính thức và Tờ khai bổ sung (KHBS)."
                     },
                     {
-                        "tab_index": 0,  # Vẫn giữ nguyên tab_index = 0, ứng dụng sẽ không bị giật màn hình
+                        "tab_index": 0,
+                        "widget": self.giao_dien.btn_tai_hd_ban_ra,
+                        "tieu_de": "2. Nạp Bảng kê Hóa đơn (Excel)",
+                        "noi_dung": "Sử dụng 2 nút 'HĐ Bán ra' và 'HĐ Mua vào' để nạp bảng kê Excel vào hệ thống. Bạn cũng có thể kéo thả trực tiếp nhiều file XML và Excel vào vùng làm việc."
+                    },
+                    {
+                        "tab_index": 0,
                         "widget": self.giao_dien.btn_kho_file_mau,
-                        "tieu_de": "2. Kho Biểu mẫu",
-                        "noi_dung": "Sử dụng nút này để tải Template Excel chuẩn, sau đó copy dữ liệu Hóa đơn hoặc CĐSPS (TT200/TT99) vào để tải lên."
+                        "tieu_de": "3. Tải Biểu mẫu Chuẩn",
+                        "noi_dung": "Sử dụng nút này để tải Template Excel chuẩn cho Hóa đơn hoặc Bảng Cân đối số phát sinh (TT200/TT133/TT99)."
                     },
                     {
                         "tab_index": 0,
                         "widget": self.giao_dien.btn_cau_hinh_tms,
-                        "tieu_de": "3. Kết nối TMS",
-                        "noi_dung": "Cài đặt tài khoản TMS để Bot tự động tra cứu tình trạng Doanh nghiệp, thời điểm nộp tờ khai"
+                        "tieu_de": "4. Kết nối & Đồng bộ TMS",
+                        "noi_dung": "Cài đặt tài khoản TMS ngành Thuế để Bot tự động tra cứu tình trạng Doanh nghiệp (đang hoạt động / bỏ trốn) và lấy ngày nộp tờ khai thực tế."
                     },
                     {
                         "tab_index": 0,
                         "widget": self.giao_dien.btn_chon_rule,
-                        "tieu_de": "4. Bộ lọc Phân tích",
-                        "noi_dung": "Bật/Tắt các quy tắc đối chiếu không cần thiết để tối ưu hóa tốc độ chạy của hệ thống."
+                        "tieu_de": "5. Bộ lọc Quy tắc Rủi ro",
+                        "noi_dung": "Bật/Tắt các công thức và quy tắc đối chiếu không cần thiết để tối ưu hóa thời gian chạy và tập trung vào chuyên đề cần thanh tra."
                     },
                     {
                         "tab_index": 0,
                         "widget": self.giao_dien.btn_phan_tich,
-                        "tieu_de": "5. Khởi động Phân tích",
-                        "noi_dung": "Sau khi chuẩn bị đủ dữ liệu, bấm nút này để ứng dụng bắt đầu phân tích."
+                        "tieu_de": "6. Khởi động Phân tích",
+                        "noi_dung": "Sau khi nạp đủ tờ khai và bảng kê, bấm nút này để hệ thống bắt đầu chạy đối chiếu số liệu và rà soát rủi ro toàn diện."
                     },
 
                     # ==========================================================
-                    # CỤM 2: NHẢY SANG CÁC TAB KẾT QUẢ ĐỂ GIỚI THIỆU
+                    # CỤM 2: CÁC TAB KẾT QUẢ ĐỐI SOÁT CHUYÊN SÂU
                     # ==========================================================
                     {
-                        "tab_index": 2,  # Hệ thống nhận diện Tab thay đổi -> Tự động đổi Tab
+                        "tab_index": 1,
+                        "widget": self.giao_dien.btn_tab_kq_to_khai,
+                        "tieu_de": "7. Tổng hợp & Đối chiếu Tờ khai",
+                        "noi_dung": "Hệ thống tổng hợp toàn bộ tờ khai qua các kỳ, phân tích biến động chỉ tiêu và bóc tách chênh lệch giữa Tờ khai chính thức và Bổ sung (KHBS)."
+                    },
+                    {
+                        "tab_index": 2,
                         "widget": self.giao_dien.btn_tab_kq_hoa_don,
-                        "tieu_de": "6. Đối chiếu Chuỗi cung ứng",
-                        "noi_dung": "Hệ thống sẽ chuyển dữ liệu sang Tab này để báo cáo chênh lệch Tồn kho và phân tích tên hàng hóa bằng AI."
+                        "tieu_de": "8. Đối chiếu Hóa đơn & Chuỗi Cung ứng",
+                        "noi_dung": "Kiểm tra chi tiết bảng kê hóa đơn mua vào - bán ra, chênh lệch tồn kho và ứng dụng AI tự động phân tích tính hợp lý của tên mặt hàng."
                     },
                     {
                         "tab_index": 3,
                         "widget": self.giao_dien.btn_tab_rui_ro,
-                        "tieu_de": "7. Hóa đơn Rủi ro",
-                        "noi_dung": "Tất cả các Hóa đơn mua của Doanh nghiệp có cảnh báo rủi ro sẽ bị bôi đỏ tại đây."
+                        "tieu_de": "9. Cảnh báo Hóa đơn Rủi ro",
+                        "noi_dung": "Mọi hóa đơn mua của Doanh nghiệp có dấu hiệu rủi ro cao, bỏ địa chỉ kinh doanh hoặc ngừng hoạt động sẽ được bôi đỏ cảnh báo tại đây."
                     },
                     {
                         "tab_index": 4,
                         "widget": self.giao_dien.btn_tab_kq_phan_tich,
-                        "tieu_de": "8. Báo cáo Tổng hợp",
-                        "noi_dung": "Mọi kết quả chênh lệch số liệu tờ khai, sai sót tài chính đều được gom chung vào Tab này."
+                        "tieu_de": "10. Báo cáo Kết quả Sai sót",
+                        "noi_dung": "Tất cả các phát hiện sai lệch số học, chỉ tiêu bất thường và danh mục rủi ro đều được gom tập trung vào bảng này kèm nội dung yêu cầu giải trình."
                     },
 
                     # ==========================================================
-                    # CỤM 3: HƯỚNG DẪN CÁC NÚT BÊN TRONG TAB 4
+                    # CỤM 3: KẾT XUẤT HỒ SƠ TẠI TAB 4
                     # ==========================================================
                     {
                         "tab_index": 4,
                         "widget": self.giao_dien.btn_tao_phieu,
-                        "tieu_de": "9. Tự động Soạn thảo",
-                        "noi_dung": "Nhấn nút này để máy tự động tổng hợp lỗi và sinh ra Phiếu Nhận xét dạng Word."
+                        "tieu_de": "11. Tự động Soạn thảo Phiếu (Word)",
+                        "noi_dung": "Tự động gom thông tin Doanh nghiệp, người nộp thuế và danh mục sai sót để tạo ra Phiếu Nhận xét mẫu chuẩn dạng Word (.docx)."
                     },
                     {
-                        "tab_index": 4,  # Vẫn là Tab 4, mượt mà di chuyển sang nút Excel
+                        "tab_index": 4,
                         "widget": self.giao_dien.btn_xuat_excel,
-                        "tieu_de": "10. Kết xuất Excel",
-                        "noi_dung": "Hoặc xuất toàn bộ bảng kê chi tiết dữ liệu, đối chiếu doanh số ra file Excel chuyên nghiệp."
+                        "tieu_de": "12. Kết xuất Báo cáo Excel Đa Sheet",
+                        "noi_dung": "Hoặc kết xuất toàn bộ bảng kê chi tiết dữ liệu, đối chiếu doanh số và sai sót ra tệp Excel đa sheet phục vụ lưu trữ và báo cáo."
                     }
                 ]
 
@@ -1595,43 +1941,59 @@ class UngDungRRR:
                 dialog = DialogXuatExcel(main_app=self)
                 dialog.exec()
 
-            def mo_trinh_soan_thao_phieu(self):
-                # ---> CHÈN ĐOẠN KHÓA TẠM THỜI VÀO NGAY ĐÂY <---
-                from PySide6.QtWidgets import QMessageBox
-                QMessageBox.information(self.giao_dien, "Thông báo",
-                                        "Chức năng này đang được nâng cấp theo biểu mẫu của quy trình mới.")
-                return  # Lệnh return sẽ chặn đứng, không cho code chạy tiếp xuống dưới
-                # ------------------------------------------------
-                # ---> BẪY KHÓA TÀI KHOẢN DÙNG THỬ <---
+            def mo_trinh_soan_thao_phieu(self, loai_mac_dinh=0):
+                """Khởi chạy trình soạn thảo Thông báo & Phiếu nhận xét (Word)"""
+                # BẪY KHÓA TÀI KHOẢN DÙNG THỬ
                 if getattr(self, 'role', '') == 'Dùng thử':
-
+                    from PySide6.QtWidgets import QMessageBox
                     QMessageBox.warning(self.giao_dien, "Giới hạn tính năng",
-                                        "Tính năng Soạn thảo Phiếu nhận xét tự động bị khóa đối với tài khoản Dùng thử.\n\nVui lòng nâng cấp tài khoản!")
-                    return
-                """Khởi chạy trình soạn thảo Phiếu nhận xét và đắp nó làm 1 sub-tab bên trong Tab Kết quả Phân tích"""
-                if not self.ket_qua_cuoi_cung:
-                    QMessageBox.warning(self.giao_dien, "Cảnh báo", "Bạn chưa chạy phân tích hồ sơ, không có dữ liệu để tạo phiếu!")
+                                        "Tính năng Soạn thảo Thông báo & Phiếu nhận xét bị khóa đối với tài khoản Dùng thử.\n\nVui lòng nâng cấp tài khoản!")
                     return
 
-                # Xác định đúng cụm Tab con của Màn hình Kết quả phân tích (Tab 4)
+                from PySide6.QtWidgets import QMessageBox
+
+                # Xác định cụm Tab con của Màn hình Kết quả phân tích (Tab 4)
+                if not hasattr(self.giao_dien, 'widget_kq_phan_tich') or not hasattr(self.giao_dien.widget_kq_phan_tich, 'tabs_kq'):
+                    QMessageBox.warning(self.giao_dien, "Cảnh báo", "Giao diện Kết quả phân tích chưa sẵn sàng!")
+                    return
+
                 tabs_kq = self.giao_dien.widget_kq_phan_tich.tabs_kq
 
                 # Chống mở trùng Tab (Nếu đang mở rồi thì Focus tới nó)
                 for i in range(tabs_kq.count()):
-                    if tabs_kq.tabText(i) == "📝 Soạn thảo Phiếu nhận xét":
+                    tab_name = tabs_kq.tabText(i)
+                    if "Soạn thảo" in tab_name or "Thông báo" in tab_name:
                         tabs_kq.setCurrentIndex(i)
+                        w = tabs_kq.widget(i)
+                        if hasattr(w, 'cb_loai_bieu_mau'):
+                            w.cb_loai_bieu_mau.setCurrentIndex(loai_mac_dinh)
+                        self.chuyen_tab(4)
                         return
 
-                # Gọi View soạn thảo ra
-                #from module_giao_dien.giao_dien_soan_thao import GiaoDienSoanThaoPhieu
-                #widget_soan_thao = GiaoDienSoanThaoPhieu(self.ket_qua_cuoi_cung, parent=self.giao_dien)
+                # Thu thập toàn bộ rủi ro của tất cả các năm đã phân tích trong kho RAM
+                findings = []
+                if hasattr(self, 'kho_ket_qua_nam') and self.kho_ket_qua_nam:
+                    # Ưu tiên thu thập từ tất cả các năm đã phân tích theo thứ tự từ mới đến cũ
+                    for nam_k in sorted(self.kho_ket_qua_nam.keys(), reverse=True):
+                        data_k = self.kho_ket_qua_nam[nam_k]
+                        for f in data_k.get("ket_qua_list", []):
+                            f_copy = dict(f)
+                            if not f_copy.get('nam_ap_dung'):
+                                f_copy['nam_ap_dung'] = str(nam_k)
+                            findings.append(f_copy)
+                elif self.ket_qua_cuoi_cung:
+                    findings = list(self.ket_qua_cuoi_cung)
+
+                if not findings and not self.du_lieu_he_thong_to_khai:
+                    QMessageBox.warning(self.giao_dien, "Cảnh báo", "Chưa có dữ liệu Tờ khai hoặc Kết quả phân tích nào để biên soạn văn bản!")
+                    return
+
                 # ==============================================================
-                # TRÍCH XUẤT TOÀN BỘ DỮ LIỆU ĐỂ BƠM CHO PHIẾU NHẬN XÉT
+                # TRÍCH XUẤT THÔNG TIN DOANH NGHIỆP & DỮ LIỆU
                 # ==============================================================
                 import re
                 ten_cong_ty, mst_cong_ty, dia_chi_cong_ty, nnkd_cong_ty = "", "", "", ""
-
-                nam_pt = self.giao_dien.cb_nam.currentText()
+                nam_pt = self.giao_dien.cb_nam.currentText() if hasattr(self.giao_dien, 'cb_nam') else "Tất cả các năm"
 
                 def gach_bo_ma_ct(dien_giai):
                     return re.sub(r'^\[.*?\]\s*', '', str(dien_giai)).strip()
@@ -1643,18 +2005,14 @@ class UngDungRRR:
                     except:
                         return False
 
-                # TẠO TỪ ĐIỂN PHÂN LỌC THEO TỪNG NĂM CHUYÊN BIỆT
                 du_lieu_theo_nam = {}
 
                 for form, dict_ky in self.du_lieu_he_thong_to_khai.items():
                     for ky, data in dict_ky.items():
-                        # Cắt lấy 4 số cuối của kỳ để lấy đích danh Năm
                         nam_cua_ky = str(ky).split('/')[-1]
-
                         if nam_pt != "Tất cả các năm" and nam_pt != nam_cua_ky:
                             continue
 
-                        # Nếu năm này chưa có trong từ điển, tạo mới ngăn kéo cho nó
                         if nam_cua_ky not in du_lieu_theo_nam:
                             du_lieu_theo_nam[nam_cua_ky] = {"gtgt": [], "tndn": [], "tncn": [], "tong_gtgt_tam": {}}
 
@@ -1667,22 +2025,19 @@ class UngDungRRR:
                         if thong_tin.get("TenNganhNgheKD"): nnkd_cong_ty = thong_tin.get("TenNganhNgheKD")
                         elif thong_tin.get("NganhNgheKD"): nnkd_cong_ty = thong_tin.get("NganhNgheKD")
 
-                        # 1. Rút trích TNDN (Đẩy vào đúng năm)
+                        # 1. TNDN
                         if "03/TNDN" in form:
                             for ma_ct, info in chi_tieu.items():
                                 dien_giai = info.get('DienGiai','')
                                 so_tien = info.get('GiaTri', '0')
-
                                 if not nnkd_cong_ty and "ngành nghề" in str(dien_giai).lower():
                                     nnkd_cong_ty = so_tien
-
                                 if co_so_lieu(so_tien):
                                     du_lieu_theo_nam[nam_cua_ky]["tndn"].append({
                                         "ten_chi_tieu": gach_bo_ma_ct(dien_giai),
                                         "so_lieu": so_tien
                                     })
-
-                        # 2. Rút trích TNCN (Đẩy vào đúng năm)
+                        # 2. TNCN
                         elif "05/KK" in form or "05/QTT" in form:
                             for ma_ct, info in chi_tieu.items():
                                 so_tien = info.get('GiaTri', '0')
@@ -1691,8 +2046,7 @@ class UngDungRRR:
                                         "ten_chi_tieu": gach_bo_ma_ct(info.get('DienGiai','')),
                                         "so_lieu": so_tien
                                     })
-
-                        # 3. Rút trích GTGT (Cộng dồn nội bộ trong năm đó)
+                        # 3. GTGT
                         elif "01/GTGT" in form:
                             for ma_ct, info in chi_tieu.items():
                                 if ma_ct not in du_lieu_theo_nam[nam_cua_ky]["tong_gtgt_tam"]:
@@ -1702,7 +2056,6 @@ class UngDungRRR:
                                 except:
                                     pass
 
-                # Chốt sổ GTGT: Ép kiểu dữ liệu GTGT cho từng năm
                 danh_sach_nam = sorted(list(du_lieu_theo_nam.keys()))
                 for nam in danh_sach_nam:
                     for ma_ct, data in du_lieu_theo_nam[nam]["tong_gtgt_tam"].items():
@@ -1712,38 +2065,39 @@ class UngDungRRR:
                 from module_phan_tich.bao_cao_doanh_so import BaoCaoDoanhSoEngine
                 from module_doc_hoadon.invoice_processor import InvoiceProcessor
 
-                # BỌC LƯỚI LỌC: Bóp chết HĐ rác trước khi xuất Phiếu Word
                 df_br_sach = InvoiceProcessor.loc_hoa_don_tinh_toan(self.dict_hd_ban_ra)
                 df_mv_sach = InvoiceProcessor.loc_hoa_don_tinh_toan(self.dict_hd_mua_vao)
 
-                du_lieu_br = BaoCaoDoanhSoEngine.xuat_du_lieu_bao_cao(df_br_sach, self.du_lieu_he_thong_to_khai, nam_pt,
-                                                                      False, self.ghi_log)
-                du_lieu_mv = BaoCaoDoanhSoEngine.xuat_du_lieu_bao_cao(df_mv_sach, self.du_lieu_he_thong_to_khai, nam_pt,
-                                                                      True, self.ghi_log)
+                du_lieu_br = BaoCaoDoanhSoEngine.xuat_du_lieu_bao_cao(df_br_sach, self.du_lieu_he_thong_to_khai, nam_pt, False, self.ghi_log)
+                du_lieu_mv = BaoCaoDoanhSoEngine.xuat_du_lieu_bao_cao(df_mv_sach, self.du_lieu_he_thong_to_khai, nam_pt, True, self.ghi_log)
 
-                # --- ĐÓNG GÓI CHUẨN FORM MỚI ---
                 du_lieu_tong_hop = {
                     "ten_nnt": ten_cong_ty,
                     "mst": mst_cong_ty,
                     "dia_chi": dia_chi_cong_ty,
                     "nnkd": nnkd_cong_ty,
-                    "ky_pt": nam_pt,
-                    "danh_sach_nam": danh_sach_nam,      # VD: ['2023', '2024']
-                    "du_lieu_theo_nam": du_lieu_theo_nam, # Chứa data đã chia sẵn
+                    "ky_pt": nam_pt if nam_pt != "Tất cả các năm" else (", ".join(danh_sach_nam) if danh_sach_nam else "Năm 2024, 2025"),
+                    "danh_sach_nam": danh_sach_nam,
+                    "du_lieu_theo_nam": du_lieu_theo_nam,
                     "bang_hoa_don_br": du_lieu_br if du_lieu_br else [],
-                    "bang_hoa_don_mv": du_lieu_mv if du_lieu_mv else []
+                    "bang_hoa_don_mv": du_lieu_mv if du_lieu_mv else [],
+                    "du_lieu_to_khai": self.du_lieu_he_thong_to_khai
                 }
 
-                # Gọi View xuất phiếu nhận xét ra
-                from module_giao_dien.giao_dien_soan_thao import GiaoDienXuatPhieuNhanXet
-                widget_soan_thao = GiaoDienXuatPhieuNhanXet(
-                    ds_rui_ro=self.ket_qua_cuoi_cung,
+                # Khởi tạo Bộ Soạn Thảo Văn Bản mới
+                from module_giao_dien.trinh_tao_thong_bao import WidgetTrinhTaoThongBao
+                widget_soan_thao = WidgetTrinhTaoThongBao(
+                    ket_qua_list=findings,
                     du_lieu_tong_hop=du_lieu_tong_hop,
+                    loai_mac_dinh=loai_mac_dinh,
+                    main_app=self,
                     parent=self.giao_dien
                 )
-                # Cắm nó vào làm Tab con cuối cùng của dãy Tab Phân tích
-                index = tabs_kq.addTab(widget_soan_thao, "📝 Soạn thảo Phiếu nhận xét")
+
+                import qtawesome as qta
+                index = tabs_kq.addTab(widget_soan_thao, qta.icon('fa5s.file-signature', color='#2563EB'), "📝 Soạn thảo Thông báo & Phiếu")
                 tabs_kq.setCurrentIndex(index)
+                self.chuyen_tab(4)
 
             def lam_moi_phien_lam_viec(self):
                 """Xóa toàn bộ Cache trong RAM và làm sạch Giao diện để bắt đầu công ty mới"""
@@ -1787,8 +2141,8 @@ class UngDungRRR:
                     # ---> BỔ SUNG LỆNH QUÉT DỌN TAB TỒN KHO TRONG TABS HÓA ĐƠN <---
                     for i in range(self.giao_dien.tabs_hoa_don.count() - 1, -1, -1):
                         ten_tab = self.giao_dien.tabs_hoa_don.tabText(i)
-                        # Quét trúng tên 1 trong 2 Tab thì sút nó đi
-                        if ten_tab in ["Rà soát Tồn kho", "Đối chiếu tên mặt hàng"]:
+                        # Quét trúng các Tab sinh động thì đóng sạch khi làm mới phiên
+                        if ten_tab in ["Rà soát Tồn kho", "Đối chiếu tên mặt hàng", "NNT Bất thường (TMS)", "Hóa đơn TT Đặc biệt"]:
                             w = self.giao_dien.tabs_hoa_don.widget(i)
                             self.giao_dien.tabs_hoa_don.removeTab(i)
                             w.deleteLater()
@@ -1797,6 +2151,7 @@ class UngDungRRR:
                     self.cap_nhat_kpi_chuan_bi()
                     if hasattr(self.giao_dien, 'kpi_trang_thai'):
                         self.giao_dien.kpi_trang_thai.cap_nhat(gia_tri="Sẵn sàng", subtext="Chờ lệnh khởi chạy")
+                    self.cap_nhat_tien_trinh(0, "Sẵn sàng phân tích", "Chưa có tác vụ nào đang chạy. Nhấn 'PHÂN TÍCH HỒ SƠ TOÀN DIỆN' để bắt đầu.", "Chờ lệnh")
 
             def chuyen_view_ket_qua_nam(self, nam):
                 """Hàm 1: Bật hiệu ứng Loading và ép UI nín thở"""
@@ -1870,6 +2225,7 @@ class UngDungRRR:
                     self.ghi_log(f"✅ Đã hiển thị báo cáo Năm {nam}.")
                     if hasattr(self.giao_dien, 'kpi_trang_thai'):
                         self.giao_dien.kpi_trang_thai.cap_nhat(gia_tri="Hoàn tất", subtext="Đã phân tích xong")
+                    self.cap_nhat_tien_trinh(100, f"Báo cáo năm {nam}", f"Đang hiển thị kết quả phân tích năm {nam}.", "Hoàn tất")
 if __name__ == "__main__":
     ung_dung = UngDungRRR()
     ung_dung.chay()

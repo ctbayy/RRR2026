@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QComboBox, QListWidget, QListWidgetItem
 from module_ho_tro.doc_cqt import lay_danh_sach_cqt
 import os
 import json
+from datetime import datetime
 from cryptography.fernet import Fernet
 from module_bao_mat.device_manager import DeviceManager
 from module_bao_mat.license_manager import LicenseManager
@@ -356,10 +357,31 @@ class LoginDialog(QDialog):
     AUTH_URL = "https://script.google.com/macros/s/AKfycbyUlzoNMXzoofWHt2JlOOsLwWsi5-QCEuGt_5PmbfIqIA04i0WYo9lo7dyZezCLjop_tw/exec"
     MASTER_KEY = b'v_M_E_tqN-K0T1X-yG6PjCq4g-p3L2hX8sK_A5rZ1M0='
 
+    @classmethod
+    def try_auto_login(cls):
+        """
+        Kiểm tra nếu thiết bị đã được xác thực trước đây (đã có session Cloud hoặc file License hợp lệ).
+        Nếu hợp lệ: Tự động xác thực và trả về (True, username, role, allowed_cqt) để vào thẳng ứng dụng.
+        Nếu chưa: Trả về (False, None, None, ["*"]).
+        """
+        is_valid, msg, payload = LicenseManager.load_active_license()
+        if is_valid:
+            user = payload.get("username", "Người dùng")
+            role = payload.get("role", "admin")
+            cqt_raw = payload.get("allowed_cqt", "*")
+            if isinstance(cqt_raw, list):
+                allowed_cqt = cqt_raw
+            elif cqt_raw and str(cqt_raw).strip() != "*":
+                allowed_cqt = [c.strip() for c in str(cqt_raw).split(",") if c.strip()]
+            else:
+                allowed_cqt = ["*"]
+            return True, user, role, allowed_cqt
+        return False, None, None, ["*"]
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Xác thực Bản quyền & Đăng nhập")
-        self.setFixedSize(540, 480)
+        self.setWindowTitle("Đăng nhập Hệ thống")
+        self.setFixedSize(460, 360)
         self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
 
         self.is_authenticated = False
@@ -375,133 +397,30 @@ class LoginDialog(QDialog):
         """)
 
         self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(24, 20, 24, 20)
+        self.main_layout.setContentsMargins(28, 22, 28, 16)
         self.main_layout.setSpacing(12)
 
         # Tiêu đề cố định
         lbl_title = QLabel("HỆ THỐNG PHÂN TÍCH HỒ SƠ KHAI THUẾ")
-        lbl_title.setStyleSheet("font-size: 17px; font-weight: bold; color: #1e3a8a;")
+        lbl_title.setStyleSheet("font-size: 16px; font-weight: bold; color: #1e3a8a;")
         lbl_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.main_layout.addWidget(lbl_title)
 
-        # Khu vực nội dung động (Card bản quyền hoặc Form đăng nhập)
-        self.content_widget = QWidget()
-        self.content_layout = QVBoxLayout(self.content_widget)
-        self.content_layout.setContentsMargins(0, 0, 0, 0)
-        self.content_layout.setSpacing(10)
-        self.main_layout.addWidget(self.content_widget)
-
-        self._render_view(force_login_form=False)
-
-    def _clear_layout(self, layout):
-        while layout.count():
-            item = layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-            elif item.layout():
-                self._clear_layout(item.layout())
-
-    def _render_view(self, force_login_form=False):
-        """Dựng giao diện động: Nếu máy đã có bản quyền hợp lệ -> Hiện thẻ sẵn sàng. Nếu chưa -> Hiện form đăng nhập."""
-        self._clear_layout(self.content_layout)
-
-        if not force_login_form:
-            is_valid, msg, payload = LicenseManager.load_active_license()
-            if is_valid:
-                self.license_info = payload
-                self._build_active_license_ui(payload)
-                return
-
+        # Mặc định luôn luôn hiển thị trực tiếp form đăng nhập (Tài khoản - Mật khẩu)
         self._build_login_form_ui()
 
-    def _build_active_license_ui(self, payload):
-        """Giao diện khi máy ĐÃ CÓ BẢN QUYỀN HỢP LỆ (Offline hoặc Cloud): 1-Click vào làm việc ngay"""
-        card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: #f0fdf4;
-                border: 1.5px solid #10b981;
-                border-radius: 10px;
-            }
-        """)
-        card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(16, 14, 16, 14)
-        card_layout.setSpacing(8)
-
-        lbl_badge = QLabel("🛡️ <b>BẢN QUYỀN ĐANG HOẠT ĐỘNG (SẴN SÀNG)</b>")
-        lbl_badge.setStyleSheet("color: #047857; font-size: 14px; border: none; background: transparent;")
-        card_layout.addWidget(lbl_badge)
-
-        user = payload.get("username", "Người dùng")
-        role = str(payload.get("role", "admin")).upper()
-        exp = payload.get("expires_at", "Vĩnh viễn")
-        src = payload.get("source_label", "Bản quyền hợp lệ")
-        cqt = payload.get("allowed_cqt", "*")
-        cqt_display = "Tất cả CQT (*)" if (cqt == "*" or not cqt) else (cqt if isinstance(cqt, str) else ", ".join(cqt))
-
-        info_html = f"""
-        <div style='font-size: 13px; color: #1e293b; line-height: 1.6;'>
-            • Chủ sở hữu: <b>{user}</b><br>
-            • Nguồn kích hoạt: <span style='color: #0284c7;'><b>{src}</b></span><br>
-            • Quyền hạn: <b>{role}</b> | Phạm vi: <b>{cqt_display}</b><br>
-            • Hạn dùng: <span style='color: #15803d;'><b>{exp}</b></span><br>
-            • Thiết bị: <span style='font-family: Consolas;'>{self.hwid}</span> <i>(Đã khóa cứng máy này)</i>
-        </div>
-        """
-        lbl_info = QLabel(info_html)
-        lbl_info.setStyleSheet("border: none; background: transparent;")
-        card_layout.addWidget(lbl_info)
-        self.content_layout.addWidget(card)
-
-        # Nút lớn Vào làm việc ngay
-        btn_enter = QPushButton("🚀 VÀO LÀM VIỆC NGAY")
-        btn_enter.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_enter.setStyleSheet("""
-            QPushButton {
-                background-color: #10b981; color: white; font-weight: bold;
-                font-size: 14px; padding: 13px; border-radius: 6px; border: none;
-            }
-            QPushButton:hover { background-color: #059669; }
-        """)
-        btn_enter.clicked.connect(lambda: self.handle_enter_active_license(payload))
-        self.content_layout.addWidget(btn_enter)
-
-        # Cụm nút phụ: Đổi tài khoản / Nạp license khác / Copy HWID
-        sub_row = QHBoxLayout()
-        sub_row.setSpacing(8)
-
-        btn_switch = QPushButton("🔄 Đổi tài khoản Cloud")
-        btn_switch.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_switch.setStyleSheet(self._sub_btn_style())
-        btn_switch.clicked.connect(lambda: self._render_view(force_login_form=True))
-
-        btn_lic = QPushButton("🔑 Đổi file License (.lic)")
-        btn_lic.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_lic.setStyleSheet(self._sub_btn_style())
-        btn_lic.clicked.connect(self.open_license_dialog)
-
-        btn_copy_hwid = QPushButton("📋 Sao chép HWID")
-        btn_copy_hwid.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_copy_hwid.setStyleSheet(self._sub_btn_style())
-        btn_copy_hwid.clicked.connect(self._copy_hwid)
-
-        sub_row.addWidget(btn_switch)
-        sub_row.addWidget(btn_lic)
-        sub_row.addWidget(btn_copy_hwid)
-        self.content_layout.addLayout(sub_row)
-
     def _build_login_form_ui(self):
-        """Giao diện khi máy CHƯA KÍCH HOẠT: Nhập Account để tự động cấp License hoặc nạp file .lic"""
-        lbl_sub = QLabel("Đăng nhập tài khoản Cloud để tự động cấp bản quyền cho thiết bị này:")
+        """Mặc định hiển thị form đăng nhập: Tài khoản - Mật khẩu"""
+        lbl_sub = QLabel("Đăng nhập tài khoản để sử dụng phần mềm:")
         lbl_sub.setStyleSheet("font-size: 12px; color: #64748b; font-style: italic;")
         lbl_sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.content_layout.addWidget(lbl_sub)
+        self.main_layout.addWidget(lbl_sub)
 
         # Form nhập tài khoản & mật khẩu
         form_frame = QFrame()
         form_layout = QVBoxLayout(form_frame)
         form_layout.setContentsMargins(0, 4, 0, 4)
-        form_layout.setSpacing(8)
+        form_layout.setSpacing(10)
 
         self.txt_username = QLineEdit()
         self.txt_username.setPlaceholderText("Tên đăng nhập...")
@@ -517,18 +436,18 @@ class LoginDialog(QDialog):
 
         form_layout.addWidget(self.txt_username)
         form_layout.addWidget(self.txt_password)
-        self.content_layout.addWidget(form_frame)
+        self.main_layout.addWidget(form_frame)
 
         # Nút Đăng nhập & Kích hoạt Tự động
-        self.btn_login = QPushButton("🔐 Đăng nhập & Kích hoạt Tự động")
+        self.btn_login = QPushButton("🔐 Đăng nhập")
         self.btn_login.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_login.setStyleSheet(self._btn_style("#2563eb", "#1d4ed8"))
+        self.btn_login.setStyleSheet(self._btn_style("#2563eb", "#1d4ed8", font_size="14px", padding="11px"))
         self.btn_login.clicked.connect(self.handle_login)
-        self.content_layout.addWidget(self.btn_login)
+        self.main_layout.addWidget(self.btn_login)
 
         # Cụm thao tác tài khoản
         acc_row = QHBoxLayout()
-        acc_row.setSpacing(8)
+        acc_row.setSpacing(10)
 
         btn_reg = QPushButton("Đăng ký tài khoản")
         btn_reg.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -542,35 +461,20 @@ class LoginDialog(QDialog):
 
         acc_row.addWidget(btn_reg)
         acc_row.addWidget(btn_chg_pwd)
-        self.content_layout.addLayout(acc_row)
+        self.main_layout.addLayout(acc_row)
 
-        # Phân cách
-        lbl_divider = QLabel("── Máy tính ở mạng nội bộ bị chặn Internet? ──")
-        lbl_divider.setStyleSheet("color: #94a3b8; font-size: 11px; margin-top: 6px;")
-        lbl_divider.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.content_layout.addWidget(lbl_divider)
-
-        # Nút nạp file license offline
-        btn_open_lic = QPushButton("📂 Kích hoạt ngoại tuyến bằng File License (.lic)...")
-        btn_open_lic.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_open_lic.setStyleSheet("""
+        # Nút nhỏ kích hoạt ngoại tuyến bằng file .lic (dành riêng khi có sự cố mạng)
+        btn_lic_link = QPushButton("🔑 Kích hoạt ngoại tuyến bằng File License (.lic)")
+        btn_lic_link.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_lic_link.setStyleSheet("""
             QPushButton {
-                background-color: #ffffff; color: #4338ca; font-weight: bold;
-                font-size: 12px; padding: 10px; border-radius: 6px; border: 1.5px dashed #6366f1;
+                background: transparent; color: #64748b; font-size: 11px;
+                border: none; padding: 4px; text-decoration: none;
             }
-            QPushButton:hover { background-color: #eef2ff; color: #3730a3; }
+            QPushButton:hover { color: #2563eb; text-decoration: underline; }
         """)
-        btn_open_lic.clicked.connect(self.open_license_dialog)
-        self.content_layout.addWidget(btn_open_lic)
-
-        # Nếu trước đó máy đã có bản quyền mà user bấm 'Đổi tài khoản', cho phép quay lại
-        is_active, _, _ = LicenseManager.load_active_license()
-        if is_active:
-            btn_back = QPushButton("⬅️ Quay lại Bản quyền đang dùng")
-            btn_back.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn_back.setStyleSheet("color: #059669; font-size: 12px; border: none; background: transparent; text-decoration: underline;")
-            btn_back.clicked.connect(lambda: self._render_view(force_login_form=False))
-            self.content_layout.addWidget(btn_back)
+        btn_lic_link.clicked.connect(self.open_license_dialog)
+        self.main_layout.addWidget(btn_lic_link, alignment=Qt.AlignmentFlag.AlignCenter)
 
     def _copy_hwid(self):
         QApplication.clipboard().setText(self.hwid)
@@ -579,13 +483,13 @@ class LoginDialog(QDialog):
     def handle_enter_active_license(self, payload):
         """Xác nhận đăng nhập bằng Bản quyền đang hoạt động"""
         self.is_authenticated = True
-        self.username = payload.get("username", "License_User")
+        self.username = payload.get("username", "Người dùng")
         self.role = payload.get("role", "admin")
         cqt_str = payload.get("allowed_cqt", "*")
         if isinstance(cqt_str, list):
             self.allowed_cqt = cqt_str
-        elif cqt_str and cqt_str.strip() != "*":
-            self.allowed_cqt = [c.strip() for c in cqt_str.split(",") if c.strip()]
+        elif cqt_str and str(cqt_str).strip() != "*":
+            self.allowed_cqt = [c.strip() for c in str(cqt_str).split(",") if c.strip()]
         else:
             self.allowed_cqt = ["*"]
         self.accept()
@@ -596,8 +500,6 @@ class LoginDialog(QDialog):
             is_valid, msg, payload = LicenseManager.load_active_license()
             if is_valid:
                 self.handle_enter_active_license(payload)
-            else:
-                self._render_view()
 
     def _input_style(self):
         return """
@@ -646,23 +548,23 @@ class LoginDialog(QDialog):
 
         success, role, allowed_cqt_str, msg = self._authenticate_cloud(usr, pwd)
 
-        self.btn_login.setText("🔐 Đăng nhập & Kích hoạt Tự động")
+        self.btn_login.setText("🔐 Đăng nhập & Kích hoạt")
         self.btn_login.setEnabled(True)
 
         if success:
             QMessageBox.information(
                 self,
-                "Kích hoạt thành công",
+                "Đăng nhập thành công",
                 f"🎉 ĐĂNG NHẬP & KÍCH HOẠT THÀNH CÔNG!\n\n"
                 f"• Tài khoản: {usr}\n"
                 f"• Thiết bị: {DeviceManager.get_machine_id()}\n\n"
-                f"Bản quyền đã được lưu an toàn trên máy tính này. "
-                f"Từ nay bạn có thể mở phần mềm sử dụng bình thường ngay cả khi không có kết nối mạng."
+                f"Hệ thống đã tự động kích hoạt bản quyền cho thiết bị này.\n"
+                f"Từ lần sau, ứng dụng sẽ tự động mở mà không cần đăng nhập lại."
             )
             self.is_authenticated = True
             self.username = usr
             self.role = role or "admin"
-            if allowed_cqt_str and allowed_cqt_str != "*":
+            if allowed_cqt_str and str(allowed_cqt_str).strip() != "*":
                 self.allowed_cqt = [c.strip() for c in str(allowed_cqt_str).split(',') if c.strip()]
             else:
                 self.allowed_cqt = ["*"]
@@ -686,14 +588,33 @@ class LoginDialog(QDialog):
 
         try:
             response = requests.post(self.AUTH_URL, json=payload, timeout=45)
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as net_err:
+            # Thử chế độ offline trước nếu máy này đã từng lưu session
+            ok_off, role_off, cqt_off, msg_off = self._authenticate_offline(username, pass_hash)
+            if ok_off:
+                return True, role_off, cqt_off, msg_off
+            if isinstance(net_err, requests.exceptions.Timeout):
+                return False, None, None, "Quá thời gian kết nối tới máy chủ Google Apps Script (Timeout > 45s).\nVui lòng kiểm tra lại đường truyền Internet và thử lại."
+            else:
+                return False, None, None, (
+                    "Không thể kết nối Internet tới máy chủ xác thực tài khoản (Google Apps Script / Google Sheet).\n\n"
+                    "Nếu máy tính của bạn ở trong mạng nội bộ bị chặn Internet, vui lòng dùng tùy chọn "
+                    "'Kích hoạt ngoại tuyến bằng File License (.lic)' bên dưới để nhận mã từ Quản trị viên."
+                )
+        except Exception as e:
+            ok_off, role_off, cqt_off, msg_off = self._authenticate_offline(username, pass_hash)
+            if ok_off:
+                return True, role_off, cqt_off, msg_off
+            return False, None, None, f"Lỗi kết nối máy chủ xác thực: {str(e)}"
 
-            if response.status_code == 200:
+        if response.status_code == 200:
+            try:
+                data = response.json()
+            except ValueError:
+                return False, None, None, f"Dữ liệu máy chủ phản hồi không đúng định dạng JSON:\n{response.text[:200]}"
+
+            if data.get("success"):
                 try:
-                    data = response.json()
-                except ValueError:
-                    return self._authenticate_offline(username, pass_hash)
-
-                if data.get("success"):
                     # Lưu phiên bản quyền Cloud xuống file ẩn mã hóa bằng Khóa phần cứng thiết bị (Level 1)
                     session_data = {
                         "username": username,
@@ -705,23 +626,22 @@ class LoginDialog(QDialog):
                         "login_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     }
                     LicenseManager.save_cloud_session(session_data)
-                    return True, data.get("role"), data.get("allowed_cqt", ""), data.get("msg")
-                else:
-                    return False, None, None, data.get("msg")
-            else:
-                return self._authenticate_offline(username, pass_hash)
+                except Exception as save_err:
+                    print(f"Cảnh báo: Không thể lưu session cục bộ: {save_err}")
 
-        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
-            return self._authenticate_offline(username, pass_hash)
-        except Exception:
-            return self._authenticate_offline(username, pass_hash)
+                return True, data.get("role"), data.get("allowed_cqt", ""), data.get("msg")
+            else:
+                return False, None, None, data.get("msg", "Tài khoản hoặc mật khẩu không chính xác.")
+        else:
+            return False, None, None, f"Máy chủ xác thực phản hồi mã lỗi HTTP: {response.status_code}"
 
     def _authenticate_offline(self, input_usr, input_pass_hash):
         file_session = LicenseManager.SESSION_FILE
         if not os.path.exists(file_session):
             return False, None, None, (
-                "Không thể kết nối máy chủ Google Drive và thiết bị này chưa từng được kích hoạt trước đây.\n\n"
-                "Nếu máy tính của bạn ở trong mạng nội bộ bị chặn internet, vui lòng dùng tùy chọn "
+                "Không thể kết nối máy chủ xác thực tài khoản (Google Apps Script / Google Sheet) "
+                "và thiết bị này chưa từng được kích hoạt trước đây.\n\n"
+                "Nếu máy tính của bạn ở trong mạng nội bộ bị chặn Internet, vui lòng dùng tùy chọn "
                 "'Kích hoạt ngoại tuyến bằng File License (.lic)' bên dưới để nhận mã từ Quản trị viên."
             )
 

@@ -375,34 +375,78 @@ class WidgetKetQuaPhanTich(QWidget):
         count_canh_bao = 0
         count_lech_hd = 0
 
+        # Import bộ lọc rác chuẩn
+        try:
+            from module_ho_tro.thu_vien_mau_cau import la_canh_bao_rac
+        except ImportError:
+            def la_canh_bao_rac(item): return False
+
+        # Kiểm tra chênh lệch Hóa đơn và Tờ khai thực tế
         if du_lieu_ban_ra:
             for row in du_lieu_ban_ra:
                 try:
-                    c_dt = abs(float(row.get('chenh_lech_dt', 0) or 0))
-                    c_th = abs(float(row.get('chenh_lech_thue', 0) or 0))
+                    c_dt = abs(float(row.get('hd_truoc', 0) or 0) - float(row.get('tk_truoc', 0) or 0))
+                    c_th = abs(float(row.get('hd_thue', 0) or 0) - float(row.get('tk_thue', 0) or 0))
+                    if 'chenh_lech_dt' in row and row.get('chenh_lech_dt') is not None:
+                        c_dt = max(c_dt, abs(float(row.get('chenh_lech_dt', 0) or 0)))
+                    if 'chenh_lech_thue' in row and row.get('chenh_lech_thue') is not None:
+                        c_th = max(c_th, abs(float(row.get('chenh_lech_thue', 0) or 0)))
                     if c_dt > 1000 or c_th > 1000:
                         count_lech_hd += 1
-                except:
+                except Exception:
                     pass
 
         if du_lieu_mua_vao:
             for row in du_lieu_mua_vao:
                 try:
-                    c_gt = abs(float(row.get('chenh_lech_gt', 0) or 0))
-                    c_th = abs(float(row.get('chenh_lech_thue', 0) or 0))
+                    c_gt = abs(float(row.get('hd_truoc', 0) or 0) - float(row.get('tk_truoc', 0) or 0))
+                    c_th = abs(float(row.get('hd_thue', 0) or 0) - float(row.get('tk_thue', 0) or 0))
+                    if 'chenh_lech_gt' in row and row.get('chenh_lech_gt') is not None:
+                        c_gt = max(c_gt, abs(float(row.get('chenh_lech_gt', 0) or 0)))
+                    if 'chenh_lech_thue' in row and row.get('chenh_lech_thue') is not None:
+                        c_th = max(c_th, abs(float(row.get('chenh_lech_thue', 0) or 0)))
                     if c_gt > 1000 or c_th > 1000:
                         count_lech_hd += 1
-                except:
+                except Exception:
                     pass
 
+        # Quét và phân loại rủi ro từ ket_qua_list
+        tu_khoa_nghiem_trong = [
+            'bỏ trốn', 'ngừng hoạt động', 'không hoạt động tại địa chỉ',
+            'giấu doanh thu', 'chênh lệch doanh thu', '131', '511', '3331',
+            'tồn kho âm', 'tồn kho ảo', 'không hợp pháp', 'sai lệch nghiêm trọng',
+            'không khớp'
+        ]
+
         for r in ket_qua_list:
-            if r.get('is_rui_ro', False):
-                tt = str(r.get('trang_thai', '')).lower()
-                muc_do = str(r.get('muc_do', '')).lower()
-                if 'cao' in muc_do or 'sai' in tt or 'lỗi' in tt or 'không khớp' in tt:
-                    count_cao += 1
-                else:
-                    count_canh_bao += 1
+            if not r.get('is_rui_ro', False):
+                continue
+            # Lọc cảnh báo rác, thiếu dữ liệu, lệch = 0
+            if la_canh_bao_rac(r):
+                continue
+
+            val_so = 0.0
+            try:
+                raw_val = r.get('ket_qua_so', 0)
+                val_so = abs(float(str(raw_val).replace(',', '').strip()))
+            except Exception:
+                pass
+
+            ten_pt = str(r.get('ten_phan_tich', '')).lower()
+            thong_diep = str(r.get('thong_diep', '')).lower()
+            muc_do = str(r.get('muc_do', '')).lower()
+
+            # Tiêu chí rủi ro cao: Chênh lệch >= 50 triệu VNĐ hoặc thuộc nhóm rủi ro trọng điểm
+            is_cao = (
+                val_so >= 50_000_000 or
+                'cao' in muc_do or
+                any(kw in ten_pt or kw in thong_diep for kw in tu_khoa_nghiem_trong)
+            )
+
+            if is_cao:
+                count_cao += 1
+            else:
+                count_canh_bao += 1
 
         tong_tieu_chi = len(ket_qua_list)
         if du_lieu_ban_ra: tong_tieu_chi += len(du_lieu_ban_ra)
@@ -410,7 +454,7 @@ class WidgetKetQuaPhanTich(QWidget):
 
         self.kpi_rr_cao.cap_nhat(
             gia_tri=str(count_cao),
-            subtext=f"{count_cao} chỉ tiêu cần giải trình" if count_cao > 0 else "Không phát hiện sai lệch",
+            subtext=f"{count_cao} chỉ tiêu rủi ro cao" if count_cao > 0 else "Không phát hiện rủi ro cao",
             badge_text="Cần xử lý" if count_cao > 0 else "An toàn"
         )
         self.kpi_rr_canh_bao.cap_nhat(
